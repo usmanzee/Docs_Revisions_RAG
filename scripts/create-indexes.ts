@@ -19,6 +19,9 @@ import { getConfig } from '../apps/api/src/config/index.js';
 import { closePool, getPool, queryOne } from '../apps/api/src/db/pool.js';
 import { getNumber, getBoolean, parseArgs } from '../apps/api/src/cli/args.js';
 import { formatBytes, formatDuration, heading, printKeyValues } from '../apps/api/src/cli/format.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 const INDEX_NAME = 'document_chunks_embedding_hnsw_idx';
 

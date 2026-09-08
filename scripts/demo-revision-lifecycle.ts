@@ -21,6 +21,9 @@ import { createIngestionService } from '../apps/api/src/modules/ingestion/index.
 import { createRevisionSimulator } from '../apps/api/src/modules/corpus/revision-simulator.js';
 import { createRetrievalService } from '../apps/api/src/modules/retrieval/index.js';
 import { disposeOCRProvider } from '../apps/api/src/modules/ocr/index.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 interface RevisionRow {
   revision_number: number;

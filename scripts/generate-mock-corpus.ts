@@ -15,6 +15,9 @@
  */
 
 import { main } from '../apps/api/src/cli/generate-corpus.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 main().catch((error: unknown) => {
   console.error('\nCorpus generation failed:');

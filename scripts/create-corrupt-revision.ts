@@ -9,6 +9,9 @@
  */
 
 import { main } from '../apps/api/src/cli/create-revision.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 main(true).catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : error);

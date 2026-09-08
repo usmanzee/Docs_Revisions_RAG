@@ -10,6 +10,9 @@
 
 import { spawn } from 'node:child_process';
 import { getConfig } from '../apps/api/src/config/index.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 const { database } = getConfig();
 

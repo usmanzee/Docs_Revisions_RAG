@@ -9,6 +9,9 @@
  */
 
 import { main } from '../apps/api/src/cli/run-ingestion.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 main().catch((error: unknown) => {
   console.error('\nIngestion failed:');

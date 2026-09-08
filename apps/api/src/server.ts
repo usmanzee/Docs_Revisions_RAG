@@ -7,6 +7,7 @@
  * request is worse than refusing to start.
  */
 
+import { assertSupportedNodeVersion } from './utils/runtime.js';
 import { buildApp } from './app.js';
 import { collectConfigWarnings, getConfig } from './config/index.js';
 import { createContainer } from './container.js';
@@ -16,6 +17,10 @@ import { toErrorMessage } from './utils/errors.js';
 import { childLogger } from './utils/logger.js';
 
 async function main(): Promise<void> {
+  // Before anything else: an unsupported runtime fails here, clearly, rather
+  // than as dozens of confusing parse errors during the first ingestion run.
+  assertSupportedNodeVersion();
+
   const config = getConfig();
   const logger = childLogger({ component: 'server' });
 

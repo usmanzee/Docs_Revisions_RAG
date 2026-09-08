@@ -11,6 +11,9 @@
  */
 
 import { main } from '../apps/api/src/cli/evaluate-rag.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 main().catch((error: unknown) => {
   console.error(`\n${error instanceof Error ? error.message : String(error)}\n`);

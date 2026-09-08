@@ -10,6 +10,9 @@
 import { getConfig } from '../apps/api/src/config/index.js';
 import { closePool, getPool } from '../apps/api/src/db/pool.js';
 import { getMigrationStatus, migrateUp, resetDatabase } from '../apps/api/src/db/migrator.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 async function main(): Promise<void> {
   const command = process.argv[2] ?? 'up';

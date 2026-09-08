@@ -8,6 +8,9 @@
  */
 
 import { main } from '../apps/api/src/cli/evaluate-retrieval.js';
+import { assertSupportedNodeVersion } from '../apps/api/src/utils/runtime.js';
+
+assertSupportedNodeVersion();
 
 main().catch((error: unknown) => {
   console.error('\nRetrieval evaluation failed:\n');

@@ -1,0 +1,43 @@
+{
+  "name": "docs-revisions-rag",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Enterprise Retrieval-Augmented Generation platform with a first-class document revision lifecycle, hybrid pgvector + PostgreSQL FTS retrieval, OCR-aware ingestion and evaluation tooling.",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:api dev:web",
+    "dev:api": "npm run dev --workspace @docs-rag/api",
+    "dev:web": "npm run dev --workspace @docs-rag/web",
+    "build": "npm run build --workspace @docs-rag/shared && npm run build --workspace @docs-rag/api && npm run build --workspace @docs-rag/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run typecheck",
+    "test": "npm run test --workspace @docs-rag/api",
+    "test:watch": "npm run test:watch --workspace @docs-rag/api",
+    "db:migrate": "tsx scripts/migrate.ts up",
+    "db:migrate:status": "tsx scripts/migrate.ts status",
+    "db:reset": "tsx scripts/migrate.ts reset",
+    "db:indexes": "tsx scripts/create-indexes.ts",
+    "db:psql": "tsx scripts/psql.ts",
+    "corpus:generate": "tsx scripts/generate-mock-corpus.ts",
+    "corpus:revise": "tsx scripts/create-mock-revision.ts",
+    "corpus:corrupt": "tsx scripts/create-corrupt-revision.ts",
+    "ingestion:run": "tsx scripts/run-ingestion.ts",
+    "eval:retrieval": "tsx scripts/evaluate-retrieval.ts",
+    "eval:rag": "tsx scripts/evaluate-rag.ts",
+    "benchmark:retrieval": "tsx scripts/benchmark-retrieval.ts",
+    "demo:revision": "tsx scripts/demo-revision-lifecycle.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "npm-run-all2": "^8.0.4",
+    "tsx": "^4.20.3",
+    "typescript": "5.9.3"
+  }
+}

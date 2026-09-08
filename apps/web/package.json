@@ -1,0 +1,28 @@
+{
+  "name": "@docs-rag/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "React + Vite client: chat with citations, document browser and the ingestion/revision admin console.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@docs-rag/shared": "*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.9.4",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "5.9.3",
+    "vite": "^7.1.9"
+  }
+}

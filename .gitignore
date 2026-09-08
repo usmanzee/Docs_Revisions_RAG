@@ -1,0 +1,29 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+
+# Generated enterprise document repository (recreate with `npm run corpus:generate`)
+storage/documents/
+storage/tmp/
+
+# Generated evaluation + benchmark output
+data/evaluation/*.json
+data/reports/
+!data/evaluation/.gitkeep
+
+# OCR language data cache
+.tesseract-cache/
+*.traineddata
+
+.DS_Store
+.idea/
+.vscode/
+
+# Scratch files
+.tmp/

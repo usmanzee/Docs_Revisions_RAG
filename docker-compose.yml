@@ -1,0 +1,121 @@
+# ---------------------------------------------------------------------------
+# Development stack: PostgreSQL + pgvector, the API, and the React client.
+#
+#   docker compose up -d          start everything
+#   docker compose up -d postgres start only the database (run the apps locally)
+#   docker compose logs -f api    follow the API
+#
+# The database is exposed on 5433 rather than 5432 so it cannot collide with a
+# PostgreSQL already running on the host - which, on a developer machine, there
+# usually is.
+# ---------------------------------------------------------------------------
+
+name: docs-revisions-rag
+
+services:
+  postgres:
+    # pgvector's official image: PostgreSQL 17 with the extension already built.
+    # Pinned to a digest-stable tag so a rebuild cannot silently change the
+    # server version underneath an existing volume.
+    image: pgvector/pgvector:pg17
+    container_name: docs-rag-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
+      POSTGRES_DB: ${POSTGRES_DB:-docs_rag}
+      # Faster and safer defaults for a disposable development database.
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    ports:
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Creates the test database and the extension on first boot only.
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Waits for the server to accept connections *and* answer a query, so
+      # dependents do not start against a database still running init scripts.
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-rag} -d ${POSTGRES_DB:-docs_rag} && psql -U ${POSTGRES_USER:-rag} -d ${POSTGRES_DB:-docs_rag} -c "SELECT 1" > /dev/null']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    shm_size: 256mb
+    command:
+      - postgres
+      - -c
+      - max_connections=100
+      # HNSW index builds are memory-hungry; without this they spill to disk.
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - shared_buffers=256MB
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    container_name: docs-rag-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      API_HOST: 0.0.0.0
+      API_PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-rag}:${POSTGRES_PASSWORD:-rag}@postgres:5432/${POSTGRES_DB:-docs_rag}
+      TEST_DATABASE_URL: postgres://${POSTGRES_USER:-rag}:${POSTGRES_PASSWORD:-rag}@postgres:5432/docs_rag_test
+      CORS_ORIGINS: http://localhost:${WEB_PORT:-5173}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-dev-admin-key}
+      # Passed through from the host .env; absent by default so the stack starts
+      # without credentials and degrades to mock embeddings.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4.1-mini}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-mock}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1536}
+      DOCUMENT_STORAGE_ROOT: /app/storage/documents
+      INGESTION_CRON: ${INGESTION_CRON:-}
+      OCR_ENABLED: ${OCR_ENABLED:-true}
+      LOG_PRETTY: ${LOG_PRETTY:-false}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    volumes:
+      # The generated corpus and OCR language cache survive container rebuilds.
+      - documents:/app/storage/documents
+      - tesseract-cache:/app/.tesseract-cache
+      - ./data:/app/data
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        # Baked at build time: the client calls the API through a same-origin
+        # path, so nothing secret is ever compiled into the bundle.
+        API_ORIGIN: http://api:3000
+    container_name: docs-rag-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-5173}:80'
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1/']
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  documents:
+  tesseract-cache:

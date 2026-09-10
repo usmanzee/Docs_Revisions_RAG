@@ -1,0 +1,1186 @@
+{
+  "version": 1,
+  "seed": 20260101,
+  "employees": [
+    {
+      "employeeId": "emp-0001",
+      "employeeNumber": "E10001",
+      "firstName": "Amara",
+      "lastName": "Okafor",
+      "displayName": "Amara Okafor",
+      "email": "amara.okafor@example.com",
+      "department": "Finance",
+      "jobTitle": "Financial Analyst",
+      "employmentType": "PERMANENT",
+      "managerId": "emp-0002",
+      "managerName": "Daniel Whitfield",
+      "hireDate": "2023-07-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0002",
+      "employeeNumber": "E10002",
+      "firstName": "Daniel",
+      "lastName": "Whitfield",
+      "displayName": "Daniel Whitfield",
+      "email": "daniel.whitfield@example.com",
+      "department": "Finance",
+      "jobTitle": "Finance Director",
+      "employmentType": "PERMANENT",
+      "managerId": null,
+      "managerName": null,
+      "hireDate": "2018-09-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "firstName": "Priya",
+      "lastName": "Raman",
+      "displayName": "Priya Raman",
+      "email": "priya.raman@example.com",
+      "department": "Information Technology",
+      "jobTitle": "Systems Engineer",
+      "employmentType": "PERMANENT",
+      "managerId": "emp-0005",
+      "managerName": "Sarah Lindqvist",
+      "hireDate": "2024-06-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0004",
+      "employeeNumber": "E10004",
+      "firstName": "Tomas",
+      "lastName": "Nowak",
+      "displayName": "Tomas Nowak",
+      "email": "tomas.nowak@example.com",
+      "department": "Information Technology",
+      "jobTitle": "Junior Developer",
+      "employmentType": "PERMANENT",
+      "managerId": "emp-0005",
+      "managerName": "Sarah Lindqvist",
+      "hireDate": "2026-08-09",
+      "onProbation": true,
+      "probationEndDate": "2026-11-09",
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0005",
+      "employeeNumber": "E10005",
+      "firstName": "Sarah",
+      "lastName": "Lindqvist",
+      "displayName": "Sarah Lindqvist",
+      "email": "sarah.lindqvist@example.com",
+      "department": "Information Technology",
+      "jobTitle": "Head of IT Operations",
+      "employmentType": "PERMANENT",
+      "managerId": null,
+      "managerName": null,
+      "hireDate": "2020-07-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0006",
+      "employeeNumber": "E10006",
+      "firstName": "Marcus",
+      "lastName": "Bello",
+      "displayName": "Marcus Bello",
+      "email": "marcus.bello@example.com",
+      "department": "Enterprise Applications",
+      "jobTitle": "Integration Consultant",
+      "employmentType": "CONTRACTOR",
+      "managerId": "emp-0005",
+      "managerName": "Sarah Lindqvist",
+      "hireDate": "2025-07-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0007",
+      "employeeNumber": "E10007",
+      "firstName": "Grace",
+      "lastName": "Adeyemi",
+      "displayName": "Grace Adeyemi",
+      "email": "grace.adeyemi@example.com",
+      "department": "Human Resources",
+      "jobTitle": "HR Business Partner",
+      "employmentType": "PERMANENT",
+      "managerId": null,
+      "managerName": null,
+      "hireDate": "2022-05-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0008",
+      "employeeNumber": "E10008",
+      "firstName": "Ravi",
+      "lastName": "Chandran",
+      "displayName": "Ravi Chandran",
+      "email": "ravi.chandran@example.com",
+      "department": "Database Administration",
+      "jobTitle": "Database Administrator",
+      "employmentType": "PERMANENT",
+      "managerId": "emp-0005",
+      "managerName": "Sarah Lindqvist",
+      "hireDate": "2021-08-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0009",
+      "employeeNumber": "E10009",
+      "firstName": "Elena",
+      "lastName": "Moreau",
+      "displayName": "Elena Moreau",
+      "email": "elena.moreau@example.com",
+      "department": "Procurement",
+      "jobTitle": "Procurement Officer",
+      "employmentType": "FIXED_TERM",
+      "managerId": "emp-0002",
+      "managerName": "Daniel Whitfield",
+      "hireDate": "2025-02-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": true,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    },
+    {
+      "employeeId": "emp-0010",
+      "employeeNumber": "E10010",
+      "firstName": "Peter",
+      "lastName": "Osei",
+      "displayName": "Peter Osei",
+      "email": "peter.osei@example.com",
+      "department": "Operations",
+      "jobTitle": "Operations Coordinator",
+      "employmentType": "PERMANENT",
+      "managerId": null,
+      "managerName": null,
+      "hireDate": "2023-04-09",
+      "onProbation": false,
+      "probationEndDate": null,
+      "active": false,
+      "workingDays": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "location": "GLOBAL"
+    }
+  ],
+  "requests": [
+    {
+      "requestId": "req-lr-2026-000001",
+      "requestNumber": "LR-2026-000001",
+      "employeeId": "emp-0001",
+      "employeeNumber": "E10001",
+      "employeeName": "Amara Okafor",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-03-28",
+      "endDate": "2026-04-01",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 3,
+      "days": [
+        {
+          "date": "2026-03-30",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-31",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-01",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": null,
+      "comments": null,
+      "submittedAt": "2026-02-12T09:00:00.000Z",
+      "decidedAt": "2026-03-13T10:00:00.000Z",
+      "decidedBy": "emp-0002",
+      "decidedByName": "Daniel Whitfield",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0002",
+      "approverName": "Daniel Whitfield",
+      "createdAt": "2026-02-12T09:00:00.000Z",
+      "updatedAt": "2026-02-12T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000002",
+      "requestNumber": "LR-2026-000002",
+      "employeeId": "emp-0001",
+      "employeeNumber": "E10001",
+      "employeeName": "Amara Okafor",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-04-18",
+      "endDate": "2026-04-21",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-04-20",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-21",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Family holiday",
+      "comments": null,
+      "submittedAt": "2026-03-19T09:00:00.000Z",
+      "decidedAt": "2026-04-10T10:00:00.000Z",
+      "decidedBy": "emp-0002",
+      "decidedByName": "Daniel Whitfield",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0002",
+      "approverName": "Daniel Whitfield",
+      "createdAt": "2026-03-19T09:00:00.000Z",
+      "updatedAt": "2026-03-19T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000003",
+      "requestNumber": "LR-2026-000003",
+      "employeeId": "emp-0001",
+      "employeeNumber": "E10001",
+      "employeeName": "Amara Okafor",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-05-10",
+      "endDate": "2026-05-11",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 1,
+      "days": [
+        {
+          "date": "2026-05-11",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Personal time",
+      "comments": null,
+      "submittedAt": "2026-04-20T09:00:00.000Z",
+      "decidedAt": "2026-04-24T10:00:00.000Z",
+      "decidedBy": "emp-0002",
+      "decidedByName": "Daniel Whitfield",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0002",
+      "approverName": "Daniel Whitfield",
+      "createdAt": "2026-04-20T09:00:00.000Z",
+      "updatedAt": "2026-04-20T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000004",
+      "requestNumber": "LR-2026-000004",
+      "employeeId": "emp-0002",
+      "employeeNumber": "E10002",
+      "employeeName": "Daniel Whitfield",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-03-23",
+      "endDate": "2026-03-24",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-03-23",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-24",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Family holiday",
+      "comments": null,
+      "submittedAt": "2026-02-05T09:00:00.000Z",
+      "decidedAt": "2026-03-06T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-02-05T09:00:00.000Z",
+      "updatedAt": "2026-02-05T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000005",
+      "requestNumber": "LR-2026-000005",
+      "employeeId": "emp-0002",
+      "employeeNumber": "E10002",
+      "employeeName": "Daniel Whitfield",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-04-17",
+      "endDate": "2026-04-22",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 4,
+      "days": [
+        {
+          "date": "2026-04-17",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-20",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-21",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-22",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Family holiday",
+      "comments": null,
+      "submittedAt": "2026-02-27T09:00:00.000Z",
+      "decidedAt": "2026-04-04T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-02-27T09:00:00.000Z",
+      "updatedAt": "2026-02-27T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000006",
+      "requestNumber": "LR-2026-000006",
+      "employeeId": "emp-0002",
+      "employeeNumber": "E10002",
+      "employeeName": "Daniel Whitfield",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-05-27",
+      "endDate": "2026-05-28",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-05-27",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-05-28",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Personal time",
+      "comments": null,
+      "submittedAt": "2026-04-09T09:00:00.000Z",
+      "decidedAt": "2026-05-19T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-04-09T09:00:00.000Z",
+      "updatedAt": "2026-04-09T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000007",
+      "requestNumber": "LR-2026-000007",
+      "employeeId": "emp-0002",
+      "employeeNumber": "E10002",
+      "employeeName": "Daniel Whitfield",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-06-16",
+      "endDate": "2026-06-17",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-06-16",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-06-17",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Personal time",
+      "comments": null,
+      "submittedAt": "2026-04-30T09:00:00.000Z",
+      "decidedAt": "2026-06-08T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-04-30T09:00:00.000Z",
+      "updatedAt": "2026-04-30T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000008",
+      "requestNumber": "LR-2026-000008",
+      "employeeId": "emp-0002",
+      "employeeNumber": "E10002",
+      "employeeName": "Daniel Whitfield",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-07-11",
+      "endDate": "2026-07-13",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 1,
+      "days": [
+        {
+          "date": "2026-07-13",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Family holiday",
+      "comments": null,
+      "submittedAt": "2026-06-17T09:00:00.000Z",
+      "decidedAt": "2026-07-01T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-06-17T09:00:00.000Z",
+      "updatedAt": "2026-06-17T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000009",
+      "requestNumber": "LR-2026-000009",
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "employeeName": "Priya Raman",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-03-22",
+      "endDate": "2026-03-24",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-03-23",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-24",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Family holiday",
+      "comments": null,
+      "submittedAt": "2026-02-26T09:00:00.000Z",
+      "decidedAt": "2026-03-08T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-02-26T09:00:00.000Z",
+      "updatedAt": "2026-02-26T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000010",
+      "requestNumber": "LR-2026-000010",
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "employeeName": "Priya Raman",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-04-08",
+      "endDate": "2026-04-10",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 3,
+      "days": [
+        {
+          "date": "2026-04-08",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-09",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-10",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Family holiday",
+      "comments": null,
+      "submittedAt": "2026-02-19T09:00:00.000Z",
+      "decidedAt": "2026-03-30T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-02-19T09:00:00.000Z",
+      "updatedAt": "2026-02-19T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000011",
+      "requestNumber": "LR-2026-000011",
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "employeeName": "Priya Raman",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-04-29",
+      "endDate": "2026-04-30",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-04-29",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-30",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Personal time",
+      "comments": null,
+      "submittedAt": "2026-04-07T09:00:00.000Z",
+      "decidedAt": "2026-04-13T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-04-07T09:00:00.000Z",
+      "updatedAt": "2026-04-07T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000012",
+      "requestNumber": "LR-2026-000012",
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "employeeName": "Priya Raman",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-05-18",
+      "endDate": "2026-05-19",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-05-18",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-05-19",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": null,
+      "comments": null,
+      "submittedAt": "2026-04-26T09:00:00.000Z",
+      "decidedAt": "2026-05-07T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-04-26T09:00:00.000Z",
+      "updatedAt": "2026-04-26T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000013",
+      "requestNumber": "LR-2026-000013",
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "employeeName": "Priya Raman",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-06-14",
+      "endDate": "2026-06-15",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 1,
+      "days": [
+        {
+          "date": "2026-06-15",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": null,
+      "comments": null,
+      "submittedAt": "2026-05-22T09:00:00.000Z",
+      "decidedAt": "2026-05-30T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-05-22T09:00:00.000Z",
+      "updatedAt": "2026-05-22T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000014",
+      "requestNumber": "LR-2026-000014",
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "employeeName": "Priya Raman",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-07-21",
+      "endDate": "2026-07-23",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 3,
+      "days": [
+        {
+          "date": "2026-07-21",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-07-22",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-07-23",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Annual break",
+      "comments": null,
+      "submittedAt": "2026-06-01T09:00:00.000Z",
+      "decidedAt": "2026-07-10T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-06-01T09:00:00.000Z",
+      "updatedAt": "2026-06-01T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000015",
+      "requestNumber": "LR-2026-000015",
+      "employeeId": "emp-0003",
+      "employeeNumber": "E10003",
+      "employeeName": "Priya Raman",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-08-17",
+      "endDate": "2026-08-18",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-08-17",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-08-18",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Long weekend",
+      "comments": null,
+      "submittedAt": "2026-07-01T09:00:00.000Z",
+      "decidedAt": "2026-08-07T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-07-01T09:00:00.000Z",
+      "updatedAt": "2026-07-01T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000016",
+      "requestNumber": "LR-2026-000016",
+      "employeeId": "emp-0005",
+      "employeeNumber": "E10005",
+      "employeeName": "Sarah Lindqvist",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-04-03",
+      "endDate": "2026-04-08",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 4,
+      "days": [
+        {
+          "date": "2026-04-03",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-06",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-07",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-08",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Annual break",
+      "comments": null,
+      "submittedAt": "2026-03-04T09:00:00.000Z",
+      "decidedAt": "2026-03-22T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-03-04T09:00:00.000Z",
+      "updatedAt": "2026-03-04T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000017",
+      "requestNumber": "LR-2026-000017",
+      "employeeId": "emp-0005",
+      "employeeNumber": "E10005",
+      "employeeName": "Sarah Lindqvist",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-05-15",
+      "endDate": "2026-05-21",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 5,
+      "days": [
+        {
+          "date": "2026-05-15",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-05-18",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-05-19",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-05-20",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-05-21",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Personal time",
+      "comments": null,
+      "submittedAt": "2026-04-04T09:00:00.000Z",
+      "decidedAt": "2026-05-08T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-04-04T09:00:00.000Z",
+      "updatedAt": "2026-04-04T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000018",
+      "requestNumber": "LR-2026-000018",
+      "employeeId": "emp-0007",
+      "employeeNumber": "E10007",
+      "employeeName": "Grace Adeyemi",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-03-09",
+      "endDate": "2026-03-16",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 4,
+      "days": [
+        {
+          "date": "2026-03-09",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-10",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-11",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-16",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Annual break",
+      "comments": null,
+      "submittedAt": "2026-02-04T09:00:00.000Z",
+      "decidedAt": "2026-02-27T10:00:00.000Z",
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": null,
+      "approverName": null,
+      "createdAt": "2026-02-04T09:00:00.000Z",
+      "updatedAt": "2026-02-04T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000019",
+      "requestNumber": "LR-2026-000019",
+      "employeeId": "emp-0008",
+      "employeeNumber": "E10008",
+      "employeeName": "Ravi Chandran",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-03-10",
+      "endDate": "2026-03-12",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 3,
+      "days": [
+        {
+          "date": "2026-03-10",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-11",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-12",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Family holiday",
+      "comments": null,
+      "submittedAt": "2026-01-24T09:00:00.000Z",
+      "decidedAt": "2026-02-25T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-01-24T09:00:00.000Z",
+      "updatedAt": "2026-01-24T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000020",
+      "requestNumber": "LR-2026-000020",
+      "employeeId": "emp-0008",
+      "employeeNumber": "E10008",
+      "employeeName": "Ravi Chandran",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-03-28",
+      "endDate": "2026-03-31",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 2,
+      "days": [
+        {
+          "date": "2026-03-30",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-31",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Annual break",
+      "comments": null,
+      "submittedAt": "2026-03-03T09:00:00.000Z",
+      "decidedAt": "2026-03-15T10:00:00.000Z",
+      "decidedBy": "emp-0005",
+      "decidedByName": "Sarah Lindqvist",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-03-03T09:00:00.000Z",
+      "updatedAt": "2026-03-03T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000021",
+      "requestNumber": "LR-2026-000021",
+      "employeeId": "emp-0008",
+      "employeeNumber": "E10008",
+      "employeeName": "Ravi Chandran",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-10-24",
+      "endDate": "2026-10-30",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 5,
+      "days": [
+        {
+          "date": "2026-10-26",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-10-27",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-10-28",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-10-29",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-10-30",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "PENDING_APPROVAL",
+      "reason": "Personal time",
+      "comments": null,
+      "submittedAt": "2026-09-13T09:00:00.000Z",
+      "decidedAt": null,
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0005",
+      "approverName": "Sarah Lindqvist",
+      "createdAt": "2026-09-13T09:00:00.000Z",
+      "updatedAt": "2026-09-13T09:00:00.000Z"
+    },
+    {
+      "requestId": "req-lr-2026-000022",
+      "requestNumber": "LR-2026-000022",
+      "employeeId": "emp-0009",
+      "employeeNumber": "E10009",
+      "employeeName": "Elena Moreau",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-03-30",
+      "endDate": "2026-04-01",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 3,
+      "days": [
+        {
+          "date": "2026-03-30",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-03-31",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        },
+        {
+          "date": "2026-04-01",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "APPROVED",
+      "reason": "Personal time",
+      "comments": null,
+      "submittedAt": "2026-03-10T09:00:00.000Z",
+      "decidedAt": "2026-03-16T10:00:00.000Z",
+      "decidedBy": "emp-0002",
+      "decidedByName": "Daniel Whitfield",
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0002",
+      "approverName": "Daniel Whitfield",
+      "createdAt": "2026-03-10T09:00:00.000Z",
+      "updatedAt": "2026-03-10T09:00:00.000Z"
+    }
+  ],
+  "sequence": 22,
+  "idempotency": {}
+}

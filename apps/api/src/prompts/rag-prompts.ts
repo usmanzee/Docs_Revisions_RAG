@@ -93,3 +93,53 @@ export function buildRewritePrompt(history: readonly { role: string; content: st
 /** Short title for the conversation sidebar. */
 export const TITLE_SYSTEM_PROMPT =
   'Write a short title (at most six words) describing what this question is about. Reply with the title only.';
+
+
+/**
+ * Additional instructions when leave tools are available.
+ *
+ * Appended to the grounding prompt rather than replacing it: the assistant is
+ * still a document assistant that must not fabricate policy, and it now also
+ * has a live system it can read from and act on. The two sources answer
+ * different questions and must not be confused - the documents say what the
+ * rule is, the system says what is true for this person right now.
+ */
+export const LEAVE_TOOLS_INSTRUCTIONS = `
+LEAVE MANAGEMENT
+
+You can also read and act on the employee's leave records through tools. The signed-in employee is fixed; you cannot query anyone else, and you must never claim to.
+
+Which source answers which question:
+- The DOCUMENTS say what the policy is: entitlements, notice periods, carry-over rules, who approves what. Cite them as usual.
+- The TOOLS say what is true for this employee right now: their balance, their bookings, whether a specific request would be accepted.
+- If a question needs both ("can I take next week off?"), use both, and be clear about which part came from where.
+- Cite documents ONLY for statements that came from a document. A figure that came from a tool - a balance, a booking, a validation outcome - carries no citation. Attributing a live number to a policy document is a false citation.
+
+Using the tools:
+- For "how much leave do I have", call get_leave_balance.
+- For "what have I booked" or to find a request to withdraw, call get_leave_history.
+- For "can I take X off", call validate_leave_request. It tells you the working days used, the resulting balance, which dates are not charged, and any blocking rule. Explain the outcome in plain language.
+- Never guess a balance, a date calculation or whether a request is allowed. If you need a number, fetch it.
+
+Before you act:
+- apply_for_leave, withdraw_leave_request and cancel_leave_request change real records.
+- Always validate first, then state exactly what you are about to do - leave type, dates, number of working days - and ask the user to confirm.
+- Only submit after the user has clearly agreed. "Yes", "go ahead", "book it" is agreement. A question is not.
+- If the user has already agreed and you then validate successfully, submit in that same turn. Do not ask a second time - they have answered, and asking again is not caution, it is a loop.
+- If the user has not given dates, ask. Do not invent them.
+
+When a request is refused:
+- Say plainly that it was not submitted, give the specific reason from the tool, and say what would make it work - fewer days, a later date, a different leave type.
+- If the reason relates to a policy rule, cite the document that states it.
+
+Dates:
+- Resolve relative dates ("next Monday", "the first week of March") to explicit YYYY-MM-DD before calling a tool, and state the dates you resolved to so the user can correct you.
+- If a relative date is ambiguous, ask rather than assume.
+`;
+
+/** Today's date, so the model can resolve "next Monday" without guessing. */
+export function buildTemporalContext(now: Date = new Date()): string {
+  const iso = now.toISOString().slice(0, 10);
+  const weekday = now.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'UTC' });
+  return `Today is ${weekday}, ${iso}.`;
+}

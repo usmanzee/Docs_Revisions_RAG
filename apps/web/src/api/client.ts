@@ -132,6 +132,13 @@ export interface DocumentListParams extends Record<string, QueryValue> {
 }
 
 export const api = {
+  /** Service readiness, including whether leave tools are available. */
+  readiness: () =>
+    request<{
+      status: string;
+      hcm?: { configured: boolean; reachable: boolean; leaveToolsEnabled: boolean };
+    }>('/ready'),
+
   listDocuments: (params: DocumentListParams = {}) =>
     request<Paginated<DocumentSummary>>(`/api/documents${toQuery(params)}`),
 

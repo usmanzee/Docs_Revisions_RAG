@@ -164,6 +164,7 @@ export interface ChatMessage {
   role: MessageRole;
   content: string;
   citations: Citation[];
+  toolActivity: ToolActivity[];
   standaloneQuery: string | null;
   model: string | null;
   answerStatus: AnswerStatus | null;
@@ -187,12 +188,42 @@ export interface ChatRequestBody {
   filters?: RetrievalFilters;
 }
 
+/** A tool the assistant ran during a turn, as reported to the client. */
+export interface ToolActivity {
+  id: string;
+  name: string;
+  /** Arguments the model supplied. Identity is injected server-side and absent. */
+  arguments: Record<string, unknown>;
+  /** True when the tool ran but the system said no - a valid outcome. */
+  refused: boolean;
+  /** Set when the tool could not run at all. */
+  error: string | null;
+  /** Human-readable outcome, the same text the model was given. */
+  summary: string;
+  durationMs: number;
+}
+
 /** Server-Sent Event payloads emitted by POST /api/chat. */
 export type ChatStreamEvent =
   | { type: 'metadata'; conversationId: string; messageId: string; standaloneQuery: string; retrievedChunks: number }
   | { type: 'token'; text: string }
+  /**
+   * Discard the answer text so far.
+   *
+   * Emitted when the model began writing and then decided it needed tools after
+   * all: that text was composed before it had the answers.
+   */
+  | { type: 'reset' }
+  | { type: 'tool'; activity: ToolActivity }
   | { type: 'citation'; citation: Citation }
-  | { type: 'complete'; messageId: string; answerStatus: AnswerStatus; citations: Citation[]; timings: { retrievalMs: number; llmMs: number; totalMs: number } }
+  | {
+      type: 'complete';
+      messageId: string;
+      answerStatus: AnswerStatus;
+      citations: Citation[];
+      toolActivity: ToolActivity[];
+      timings: { retrievalMs: number; llmMs: number; toolMs: number; totalMs: number };
+    }
   | { type: 'error'; code: string; message: string };
 
 // --- Retrieval debug -------------------------------------------------------

@@ -27,3 +27,6 @@ data/reports/
 
 # Scratch files
 .tmp/
+
+# Mock HCM state snapshot (regenerated from seed)
+data/hcm-mock-state.json

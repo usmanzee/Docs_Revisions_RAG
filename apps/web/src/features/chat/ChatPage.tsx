@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { Citation, DocumentType, RetrievalFilters } from '@docs-rag/shared';
+import type { Citation, DocumentType, RetrievalFilters, ToolActivity } from '@docs-rag/shared';
 import { DOCUMENT_TYPES } from '@docs-rag/shared';
 import { api } from '../../api/client.js';
 import { streamChat } from '../../api/chat-stream.js';
@@ -13,11 +13,24 @@ interface Turn {
   role: 'user' | 'assistant';
   content: string;
   citations: Citation[];
+  toolActivity: ToolActivity[];
   answerStatus?: string | null;
   timings?: { retrievalMs: number | null; llmMs: number | null } | null;
 }
 
 const SUGGESTIONS = [
+  {
+    question: 'How many annual leave days do I have left?',
+    hint: 'Reads your live balance from the HCM system.',
+  },
+  {
+    question: 'Can I take the week of 16 November off?',
+    hint: 'Checks the request against your balance and the notice rules before booking anything.',
+  },
+  {
+    question: 'What leave have I got booked?',
+    hint: 'Lists your requests and their approval status.',
+  },
   {
     question: 'What expenses require Finance Director approval?',
     hint: 'Answers from the current revision of the expense policy, with a citation.',
@@ -47,6 +60,7 @@ export function ChatPage() {
   const [activeCitation, setActiveCitation] = useState<Citation | null>(null);
   const [filters, setFilters] = useState<RetrievalFilters>({});
   const [departments, setDepartments] = useState<string[]>([]);
+  const [leaveEnabled, setLeaveEnabled] = useState(false);
 
   const conversationIdRef = useRef<string | null>(routeConversationId ?? null);
   /**
@@ -73,6 +87,13 @@ export function ChatPage() {
     api
       .documentFacets()
       .then((facets) => setDepartments(facets.departments))
+      .catch(() => undefined);
+
+    // Whether the assistant can act on leave, so the UI can say so plainly
+    // rather than leaving the user to discover it by asking.
+    api
+      .readiness()
+      .then((status) => setLeaveEnabled(status.hcm?.leaveToolsEnabled ?? false))
       .catch(() => undefined);
   }, []);
 
@@ -105,6 +126,7 @@ export function ChatPage() {
             role: message.role === 'user' ? 'user' : 'assistant',
             content: message.content,
             citations: message.citations,
+            toolActivity: message.toolActivity ?? [],
             answerStatus: message.answerStatus,
             timings: { retrievalMs: message.retrievalMs, llmMs: message.llmMs },
           })),
@@ -138,8 +160,8 @@ export function ChatPage() {
 
       setTurns((current) => [
         ...current,
-        { id: `user-${Date.now()}`, role: 'user', content: trimmed, citations: [] },
-        { id: assistantId, role: 'assistant', content: '', citations: [] },
+        { id: `user-${Date.now()}`, role: 'user', content: trimmed, citations: [], toolActivity: [] },
+        { id: assistantId, role: 'assistant', content: '', citations: [], toolActivity: [] },
       ]);
 
       const controller = new AbortController();
@@ -192,6 +214,27 @@ export function ChatPage() {
                 break;
               }
 
+              case 'reset': {
+                // The model began writing, then decided it needed tools. What
+                // was shown was composed before it had the answers.
+                setTurns((current) =>
+                  current.map((turn) => (turn.id === assistantId ? { ...turn, content: '' } : turn)),
+                );
+                break;
+              }
+
+              case 'tool': {
+                setTurns((current) =>
+                  current.map((turn) =>
+                    turn.id === assistantId &&
+                    !turn.toolActivity.some((entry) => entry.id === event.activity.id)
+                      ? { ...turn, toolActivity: [...turn.toolActivity, event.activity] }
+                      : turn,
+                  ),
+                );
+                break;
+              }
+
               case 'citation': {
                 setTurns((current) =>
                   current.map((turn) =>
@@ -211,6 +254,7 @@ export function ChatPage() {
                           ...turn,
                           id: event.messageId,
                           citations: event.citations,
+                          toolActivity: event.toolActivity,
                           answerStatus: event.answerStatus,
                           timings: { retrievalMs: event.timings.retrievalMs, llmMs: event.timings.llmMs },
                         }
@@ -273,6 +317,7 @@ export function ChatPage() {
           <h1 className="page-title">Chat</h1>
           <p className="page-subtitle">
             Grounded in the current revision of each document. Every factual claim is cited.
+            {leaveEnabled ? ' Leave balances and bookings come from the HCM system.' : ''}
           </p>
         </div>
         <div className="page-actions">
@@ -317,6 +362,7 @@ export function ChatPage() {
                     role={turn.role}
                     content={turn.content}
                     citations={turn.citations}
+                    toolActivity={turn.toolActivity}
                     streaming={streaming && index === turns.length - 1}
                     answerStatus={turn.answerStatus}
                     timings={turn.timings}
@@ -343,6 +389,16 @@ export function ChatPage() {
 
           <div className="chat-composer">
             <div className="composer-inner">
+              {leaveEnabled && (
+                <div className="identity-banner">
+                  <span aria-hidden="true">👤</span>
+                  <span>
+                    Leave actions run as the demo employee. Chat has no sign-in yet, so the assistant
+                    always acts as one fixed person.
+                  </span>
+                </div>
+              )}
+
               <div className="chat-filters">
                 <select
                   value={filters.department ?? ''}

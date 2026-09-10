@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Citation } from '@docs-rag/shared';
+import type { Citation, ToolActivity } from '@docs-rag/shared';
+import { ToolActivityView } from './ToolActivityView.js';
 
 /**
  * A rendered assistant or user message.
@@ -16,6 +17,7 @@ export interface MessageViewProps {
   role: 'user' | 'assistant';
   content: string;
   citations: Citation[];
+  toolActivity: ToolActivity[];
   streaming?: boolean;
   answerStatus?: string | null;
   timings?: { retrievalMs: number | null; llmMs: number | null } | null;
@@ -98,6 +100,9 @@ export function MessageView(props: MessageViewProps) {
       <div className="message-avatar">{props.role === 'user' ? 'You' : 'DA'}</div>
       <div className="message-content">
         <div className="message-role">{props.role === 'user' ? 'You' : 'Assistant'}</div>
+
+        {/* Above the answer: what was done comes before what was said. */}
+        <ToolActivityView activity={props.toolActivity} />
 
         <div className="message-body">
           {props.role === 'user' ? (

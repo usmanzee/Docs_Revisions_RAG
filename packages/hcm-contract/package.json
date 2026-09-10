@@ -1,0 +1,27 @@
+{
+  "name": "@docs-rag/hcm-contract",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Wire contract for the HCM leave-management API. Shared by the mock server and by any client that calls it.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

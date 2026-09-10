@@ -112,6 +112,18 @@ export interface VisionConfig {
   maxImagesPerDocument: number;
 }
 
+export interface HcmConfig {
+  /** Empty disables leave tools entirely. */
+  baseUrl: string | null;
+  apiKey: string;
+  requestTimeoutMs: number;
+  retryLimit: number;
+  toolsEnabled: boolean;
+  /** Employee the assistant acts as until real authentication exists. */
+  defaultEmployeeId: string;
+  maxToolIterations: number;
+}
+
 export interface CorpusConfig {
   profile: 'smoke' | 'quality' | 'scale';
   size: number;
@@ -155,6 +167,7 @@ export interface AppConfig {
   ingestion: IngestionConfig;
   ocr: OcrConfig;
   vision: VisionConfig;
+  hcm: HcmConfig;
   corpus: CorpusConfig;
 }
 
@@ -271,6 +284,15 @@ export function buildConfig(env: Env = parseEnv()): AppConfig {
       model: env.VISION_MODEL,
       maxImagesPerDocument: env.VISION_MAX_IMAGES_PER_DOCUMENT,
     },
+    hcm: {
+      baseUrl: env.HCM_BASE_URL,
+      apiKey: env.HCM_API_KEY,
+      requestTimeoutMs: env.HCM_REQUEST_TIMEOUT_MS,
+      retryLimit: env.HCM_RETRY_LIMIT,
+      toolsEnabled: env.HCM_TOOLS_ENABLED && env.HCM_BASE_URL !== null,
+      defaultEmployeeId: env.CHAT_DEFAULT_EMPLOYEE_ID,
+      maxToolIterations: env.CHAT_MAX_TOOL_ITERATIONS,
+    },
     corpus: {
       profile: env.MOCK_CORPUS_PROFILE,
       size: env.MOCK_CORPUS_SIZE,
@@ -333,6 +355,19 @@ export function collectConfigWarnings(config: AppConfig): string[] {
 
   if (config.isProduction && config.server.adminApiKey === 'dev-admin-key') {
     warnings.push('ADMIN_API_KEY is still the development default while NODE_ENV=production.');
+  }
+
+  if (config.hcm.toolsEnabled && !config.openai.apiKey) {
+    warnings.push(
+      'HCM leave tools are enabled but OPENAI_API_KEY is not set. Tool calling needs a chat model.',
+    );
+  }
+
+  if (config.isProduction && config.hcm.toolsEnabled) {
+    warnings.push(
+      'Leave tools act as CHAT_DEFAULT_EMPLOYEE_ID because chat has no authentication. ' +
+        'This must not be deployed as-is - see docs/security-and-permissions.md.',
+    );
   }
 
   if (config.isProduction && config.server.debugEndpointsEnabled) {

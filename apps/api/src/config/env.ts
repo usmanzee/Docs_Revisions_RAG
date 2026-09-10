@@ -185,6 +185,20 @@ export const envSchema = z.object({
 
   ENABLE_DEBUG_ENDPOINTS: boolish(false),
 
+  // --- HCM leave integration ---
+  HCM_BASE_URL: optionalString(),
+  HCM_API_KEY: stringish('hcm-dev-key'),
+  HCM_REQUEST_TIMEOUT_MS: intish(10_000, 500),
+  HCM_RETRY_LIMIT: intish(2, 0, 5),
+  HCM_TOOLS_ENABLED: boolish(true),
+  // Identity is not yet wired to real authentication, so the demo acts as this
+  // employee unless a conversation overrides it. See docs/security-and-permissions.md.
+  CHAT_DEFAULT_EMPLOYEE_ID: stringish('E10001'),
+  // Bound on the agentic loop, so a confused model cannot spin. Four leaves
+  // room for the longest legitimate sequence: a refused call, a validation, the
+  // action itself, and the answer.
+  CHAT_MAX_TOOL_ITERATIONS: intish(4, 1, 8),
+
   MOCK_CORPUS_PROFILE: z.enum(['smoke', 'quality', 'scale']).default('quality'),
   MOCK_CORPUS_SIZE: intish(75, 1, 200_000),
   MOCK_CORPUS_SEED: intish(12_345),

@@ -7,7 +7,13 @@
  * superseded - and the stored citation is provably the one that was shown.
  */
 
-import type { AnswerStatus, ChatMessage, Citation, ConversationSummary } from '@docs-rag/shared';
+import type {
+  AnswerStatus,
+  ChatMessage,
+  Citation,
+  ConversationSummary,
+  ToolActivity,
+} from '@docs-rag/shared';
 import { getPool, queryOne, queryRows, type Queryable } from '../db/pool.js';
 import { toIso, type ConversationRow, type MessageRow } from './types.js';
 
@@ -120,6 +126,8 @@ export class ConversationRepository {
       citations: Citation[];
       answerStatus: AnswerStatus;
       model: string | null;
+      /** Stored in metadata: a record of what the assistant actually did. */
+      toolActivity?: ToolActivity[];
       promptTokens?: number | null;
       completionTokens?: number | null;
       contextTokens?: number | null;
@@ -141,7 +149,8 @@ export class ConversationRepository {
               retrieval_ms      = $9,
               llm_ms            = $10,
               total_ms          = $11,
-              error             = $12
+              error             = $12,
+              metadata          = metadata || $13::jsonb
         WHERE id = $1`,
       [
         messageId,
@@ -156,6 +165,7 @@ export class ConversationRepository {
         update.llmMs ?? null,
         update.totalMs ?? null,
         update.error ?? null,
+        JSON.stringify({ toolActivity: update.toolActivity ?? [] }),
       ],
     );
   }
@@ -227,6 +237,9 @@ export function mapChatMessage(row: MessageRow): ChatMessage {
     role: row.role,
     content: row.content,
     citations: Array.isArray(row.citations) ? (row.citations as Citation[]) : [],
+    toolActivity: Array.isArray((row.metadata as { toolActivity?: unknown }).toolActivity)
+      ? ((row.metadata as { toolActivity: ToolActivity[] }).toolActivity)
+      : [],
     standaloneQuery: row.standalone_query,
     model: row.model,
     answerStatus: (row.answer_status as AnswerStatus | null) ?? null,

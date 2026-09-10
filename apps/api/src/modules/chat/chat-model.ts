@@ -9,7 +9,16 @@
  */
 
 import { ChatOpenAI } from '@langchain/openai';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import {
+  AIMessage,
+  HumanMessage,
+  SystemMessage,
+  ToolMessage,
+  type BaseMessage,
+} from '@langchain/core/messages';
+import { z } from 'zod';
+import type { AnyAssistantTool } from './tools/types.js';
+import type { ProposedToolCall } from './tools/executor.js';
 import type { AppConfig } from '../../config/index.js';
 import { getConfig } from '../../config/index.js';
 import { ConfigurationError, LlmError, toErrorMessage } from '../../utils/errors.js';
@@ -17,6 +26,30 @@ import { ConfigurationError, LlmError, toErrorMessage } from '../../utils/errors
 export interface ChatCompletionRequest {
   system: string;
   user: string;
+}
+
+/**
+ * A turn's message history, including any tool exchange so far.
+ *
+ * Kept as a discriminated list rather than raw LangChain messages so the RAG
+ * service never has to import the framework's message classes - the same
+ * separation that keeps retrieval logic independent of LangChain.
+ */
+export type ConversationTurn =
+  | { role: 'user'; content: string }
+  | { role: 'assistant'; content: string; toolCalls?: ProposedToolCall[] }
+  | { role: 'tool'; toolCallId: string; name: string; content: string };
+
+export interface ToolAwareRequest {
+  system: string;
+  turns: ConversationTurn[];
+  tools: AnyAssistantTool[];
+}
+
+export interface ToolDecision {
+  /** Text the model produced. Empty when it only asked for tools. */
+  content: string;
+  toolCalls: ProposedToolCall[];
 }
 
 export interface ChatCompletionResult {
@@ -38,6 +71,14 @@ export interface ChatModelProvider {
    */
   completeUtility(request: ChatCompletionRequest): Promise<ChatCompletionResult>;
   stream(request: ChatCompletionRequest): AsyncIterable<string>;
+
+  /**
+   * One step of a tool-calling exchange: the model either answers or asks for
+   * tools. Streamed, so an answer that needs no tools arrives progressively.
+   */
+  streamWithTools(
+    request: ToolAwareRequest,
+  ): AsyncIterable<{ type: 'token'; text: string } | { type: 'decision'; decision: ToolDecision }>;
 }
 
 export class OpenAIChatModelProvider implements ChatModelProvider {
@@ -116,6 +157,88 @@ export class OpenAIChatModelProvider implements ChatModelProvider {
     return this.invoke(this.require(this.utilityClient), request);
   }
 
+
+  /**
+   * Stream one tool-calling step.
+   *
+   * Text and tool calls are accumulated separately as chunks arrive. Text is
+   * yielded immediately - so an answer that needs no tools streams normally -
+   * while tool-call fragments are assembled and reported once at the end. The
+   * caller decides what to do when both appear, which OpenAI occasionally does.
+   */
+  async *streamWithTools(
+    request: ToolAwareRequest,
+  ): AsyncIterable<{ type: 'token'; text: string } | { type: 'decision'; decision: ToolDecision }> {
+    const client = this.require();
+
+    const bound =
+      request.tools.length > 0
+        ? client.bindTools(
+            request.tools.map((tool) => ({
+              type: 'function' as const,
+              function: {
+                name: tool.name,
+                description: tool.description,
+                // Zod 4 emits JSON Schema natively. `io: 'input'` describes what
+                // the model must send rather than what parsing returns, and
+                // inlining refs keeps the provider's validator happy.
+                parameters: z.toJSONSchema(tool.schema, {
+                  io: 'input',
+                  target: 'draft-7',
+                }) as Record<string, unknown>,
+              },
+            })),
+          )
+        : client;
+
+    const messages = toLangChainMessages(request.system, request.turns);
+
+    let content = '';
+    // Keyed by the index OpenAI assigns, because arguments arrive as fragments
+    // spread across many chunks and only the index ties them together.
+    const partial = new Map<number, { id: string; name: string; args: string }>();
+
+    try {
+      const stream = await bound.stream(messages);
+
+      for await (const chunk of stream) {
+        const text = typeof chunk.content === 'string' ? chunk.content : '';
+        if (text.length > 0) {
+          content += text;
+          yield { type: 'token', text };
+        }
+
+        for (const fragment of chunk.tool_call_chunks ?? []) {
+          const index = fragment.index ?? 0;
+          const existing = partial.get(index) ?? { id: '', name: '', args: '' };
+
+          partial.set(index, {
+            id: fragment.id ?? existing.id,
+            name: fragment.name ?? existing.name,
+            args: existing.args + (fragment.args ?? ''),
+          });
+        }
+      }
+    } catch (error) {
+      throw new LlmError(`tool-calling stream failed: ${toErrorMessage(error)}`, { cause: error });
+    }
+
+    const toolCalls: ProposedToolCall[] = [];
+    for (const [index, entry] of partial) {
+      if (entry.name.length === 0) continue;
+      toolCalls.push({
+        id: entry.id || `call_${index}`,
+        name: entry.name,
+        // Malformed argument JSON is handed on as an empty object; the executor
+        // will reject it against the schema with a message the model can act on,
+        // which is more useful than throwing here.
+        arguments: parseArguments(entry.args),
+      });
+    }
+
+    yield { type: 'decision', decision: { content, toolCalls } };
+  }
+
   async *stream(request: ChatCompletionRequest): AsyncIterable<string> {
     const client = this.require();
 
@@ -128,6 +251,53 @@ export class OpenAIChatModelProvider implements ChatModelProvider {
     } catch (error) {
       throw new LlmError(`chat streaming failed: ${toErrorMessage(error)}`, { cause: error });
     }
+  }
+}
+
+/** Translate the transport-neutral turn list into LangChain messages. */
+function toLangChainMessages(system: string, turns: ConversationTurn[]): BaseMessage[] {
+  const messages: BaseMessage[] = [new SystemMessage(system)];
+
+  for (const turn of turns) {
+    switch (turn.role) {
+      case 'user':
+        messages.push(new HumanMessage(turn.content));
+        break;
+
+      case 'assistant':
+        messages.push(
+          new AIMessage({
+            content: turn.content,
+            // The provider requires the assistant's tool calls to be echoed back
+            // alongside their results, or the exchange does not type-check on
+            // their side.
+            tool_calls: (turn.toolCalls ?? []).map((call) => ({
+              id: call.id,
+              name: call.name,
+              args: call.arguments,
+            })),
+          }),
+        );
+        break;
+
+      case 'tool':
+        messages.push(
+          new ToolMessage({ tool_call_id: turn.toolCallId, name: turn.name, content: turn.content }),
+        );
+        break;
+    }
+  }
+
+  return messages;
+}
+
+function parseArguments(raw: string): Record<string, unknown> {
+  if (raw.trim().length === 0) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
   }
 }
 

@@ -30,6 +30,11 @@ export async function registerHealthRoutes(app: AppInstance, container: AppConta
       });
     }
 
+    // The HCM is a soft dependency: chat still answers document questions
+    // without it, so an outage there degrades capability rather than readiness.
+    const hcmConfigured = container.hcm.isConfigured();
+    const hcmReachable = hcmConfigured ? await container.hcm.ping() : false;
+
     return {
       status: 'ready',
       database: 'reachable',
@@ -37,6 +42,11 @@ export async function registerHealthRoutes(app: AppInstance, container: AppConta
       embeddingModel: container.embeddings.model,
       chatModelConfigured: container.chatModel.isAvailable(),
       ingestionCron: container.config.ingestion.cron,
+      hcm: {
+        configured: hcmConfigured,
+        reachable: hcmReachable,
+        leaveToolsEnabled: container.config.hcm.toolsEnabled && hcmConfigured,
+      },
     };
   });
 }

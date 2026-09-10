@@ -13,6 +13,7 @@
  *     parametric knowledge is the failure this whole system exists to prevent.
  */
 
+import { randomUUID } from 'node:crypto';
 import type { AnswerStatus, Citation, RetrievalFilters } from '@docs-rag/shared';
 import type { AppConfig } from '../../config/index.js';
 import { getConfig } from '../../config/index.js';
@@ -22,11 +23,16 @@ import { childLogger } from '../../utils/logger.js';
 import { countTokens, truncateToTokens } from '../../utils/tokens.js';
 import {
   buildRewritePrompt,
+  buildTemporalContext,
   buildUserPrompt,
+  LEAVE_TOOLS_INSTRUCTIONS,
   QUERY_REWRITE_SYSTEM_PROMPT,
   RAG_SYSTEM_PROMPT,
   TITLE_SYSTEM_PROMPT,
 } from '../../prompts/rag-prompts.js';
+import { ToolExecutor } from './tools/executor.js';
+import type { AnyAssistantTool, ToolContext, ToolInvocation } from './tools/types.js';
+import type { ConversationTurn } from './chat-model.js';
 import { buildContext } from '../retrieval/context-builder.js';
 import { cleanRewrittenQuery, needsRewrite } from '../retrieval/query-analysis.js';
 import type { RetrievalService } from '../retrieval/retrieval-service.js';
@@ -35,6 +41,10 @@ import type { ChatModelProvider } from './chat-model.js';
 
 export interface RagRequest {
   question: string;
+  /** Whose records the tools may touch. Never model-supplied. */
+  employeeId?: string;
+  /** Stable per turn, so a retried write is idempotent. */
+  turnId?: string;
   conversationId?: string | null;
   messageId?: string | null;
   filters?: RetrievalFilters;
@@ -56,6 +66,8 @@ export interface RagPreparation {
 
 export interface RagAnswer {
   answer: string;
+  /** Tools the model called this turn, with their outcomes. */
+  toolInvocations: ToolInvocation[];
   citations: Citation[];
   answerStatus: AnswerStatus;
   standaloneQuery: string;
@@ -65,6 +77,7 @@ export interface RagAnswer {
   completionTokens: number | null;
   retrievalMs: number;
   llmMs: number;
+  toolMs: number;
   totalMs: number;
   retrievalLogId: string | null;
 }
@@ -85,9 +98,20 @@ const REFUSAL_MARKERS = [
   'unable to find',
 ];
 
-export function classifyAnswer(answer: string, hasContext: boolean, citations: Citation[]): AnswerStatus {
+export function classifyAnswer(
+  answer: string,
+  hasContext: boolean,
+  citations: Citation[],
+  /**
+   * True when the answer was grounded in a live system rather than documents.
+   * "You have 14 days left" is fully grounded and legitimately has no citation,
+   * so the no-citation rule must not label it as unanswered.
+   */
+  groundedInTools = false,
+): AnswerStatus {
   const normalized = answer.toLowerCase();
   if (REFUSAL_MARKERS.some((marker) => normalized.includes(marker))) return 'INSUFFICIENT_CONTEXT';
+  if (groundedInTools) return 'ANSWERED';
   if (!hasContext) return 'INSUFFICIENT_CONTEXT';
   if (citations.length === 0) return 'INSUFFICIENT_CONTEXT';
   return 'ANSWERED';
@@ -118,6 +142,8 @@ export interface RagServiceDependencies {
   retrieval: RetrievalService;
   chatModel: ChatModelProvider;
   conversations?: ConversationRepository;
+  /** Empty when no HCM is configured; the assistant then omits leave tools. */
+  tools?: AnyAssistantTool[];
   config?: AppConfig;
 }
 
@@ -209,39 +235,224 @@ export class RagService {
       citations: built.citations,
       contextTokens: built.tokenCount,
       hasContext: built.included.length > 0,
-      systemPrompt: RAG_SYSTEM_PROMPT,
+      systemPrompt: this.buildSystemPrompt(),
       userPrompt: buildUserPrompt(request.question, built.text),
     };
   }
 
-  /** Non-streaming answer. Used by evaluation and by clients that want JSON. */
+  /**
+   * Recent conversation, as messages the model can actually see.
+   *
+   * Retrieval has always used history to build a standalone query, but the model
+   * itself only ever received the current question. That was adequate while every
+   * turn was a self-contained document lookup; it is not adequate once the
+   * assistant can act. "Yes, go ahead and book it" is meaningless without the
+   * turn that proposed something to book.
+   *
+   * Only prior text is replayed - not the document context those turns were
+   * given, which would multiply the prompt for no benefit.
+   */
+  private async recentConversationTurns(conversationId: string | null | undefined): Promise<ConversationTurn[]> {
+    if (!conversationId || !this.deps.conversations) return [];
+
+    const history = await this.deps.conversations.recentTurns(conversationId, this.config.chat.historyTurns);
+    if (history.length === 0) return [];
+
+    // Bounded from the most recent backwards, so a long conversation cannot
+    // inflate the prompt without limit.
+    const bounded: ConversationTurn[] = [];
+    let used = 0;
+
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+      const turn = history[index] as { role: string; content: string };
+      if (turn.content.trim().length === 0) continue;
+
+      const content = truncateToTokens(turn.content, 600);
+      const cost = countTokens(content);
+      if (used + cost > this.config.chat.historyTokenBudget) break;
+
+      bounded.unshift(
+        turn.role === 'user'
+          ? { role: 'user', content }
+          : { role: 'assistant', content },
+      );
+      used += cost;
+    }
+
+    return bounded;
+  }
+
+  /** Tools available to the assistant, or none when no HCM is configured. */
+  private get availableTools(): AnyAssistantTool[] {
+    return this.config.hcm.toolsEnabled ? (this.deps.tools ?? []) : [];
+  }
+
+  /**
+   * System prompt for the turn.
+   *
+   * The grounding rules are constant. The leave instructions are appended only
+   * when the tools actually exist - describing capabilities the assistant does
+   * not have is how it ends up promising to book leave and then failing.
+   *
+   * Today's date is included so relative dates ("next Monday") can be resolved
+   * rather than guessed.
+   */
+  private buildSystemPrompt(): string {
+    const parts = [RAG_SYSTEM_PROMPT, buildTemporalContext()];
+    if (this.availableTools.length > 0) parts.push(LEAVE_TOOLS_INSTRUCTIONS);
+    return parts.join('\n\n');
+  }
+
+  /**
+   * Run the model, letting it call tools, and stream the final answer.
+   *
+   * Each iteration streams one model step. If the step produced only text, the
+   * turn is done and that text was already delivered token by token. If it asked
+   * for tools, they run and the loop goes round again with the results appended.
+   *
+   * When a step produces text *and* tool calls - which providers occasionally do
+   * - the partial text is discarded and `onReset` fires, because that text was
+   * written before the model knew what the tools would say.
+   */
+  private async *runToolLoop(
+    systemPrompt: string,
+    initialTurns: ConversationTurn[],
+    toolContext: ToolContext,
+  ): AsyncGenerator<
+    | { type: 'token'; text: string }
+    | { type: 'reset' }
+    | { type: 'tool'; invocation: ToolInvocation }
+    | { type: 'done'; content: string; invocations: ToolInvocation[]; toolMs: number },
+    void,
+    void
+  > {
+    const tools = this.availableTools;
+    const executor = new ToolExecutor(tools);
+    const turns = [...initialTurns];
+    const invocations: ToolInvocation[] = [];
+
+    let toolMs = 0;
+    let finalContent = '';
+
+    for (let iteration = 0; iteration < this.config.hcm.maxToolIterations; iteration += 1) {
+      let emittedText = false;
+      let decision: { content: string; toolCalls: { id: string; name: string; arguments: Record<string, unknown> }[] } | null =
+        null;
+
+      // Tools stay available across iterations, because a legitimate action is
+      // two steps: validate, then apply. Withdrawing them after the first round
+      // would make the intended flow impossible and would strand the model after
+      // a refused call, unable to correct itself.
+      //
+      // On the final permitted iteration they are withdrawn, which forces an
+      // answer rather than another request the loop has no room to serve.
+      const isFinalIteration = iteration === this.config.hcm.maxToolIterations - 1;
+
+      for await (const event of this.deps.chatModel.streamWithTools({
+        system: systemPrompt,
+        turns,
+        tools: isFinalIteration ? [] : tools,
+      })) {
+        if (event.type === 'token') {
+          emittedText = true;
+          yield { type: 'token', text: event.text };
+        } else {
+          decision = event.decision;
+        }
+      }
+
+      if (!decision) break;
+
+      if (decision.toolCalls.length === 0) {
+        finalContent = decision.content;
+        break;
+      }
+
+      // Text alongside tool calls: what was shown was written before the model
+      // had the answers, so retract it.
+      if (emittedText) yield { type: 'reset' };
+
+      turns.push({ role: 'assistant', content: decision.content, toolCalls: decision.toolCalls });
+
+      const toolStarted = performance.now();
+      for (const call of decision.toolCalls) {
+        const invocation = await executor.execute(call, toolContext);
+        invocations.push(invocation);
+        yield { type: 'tool', invocation };
+
+        turns.push({
+          role: 'tool',
+          toolCallId: call.id,
+          name: call.name,
+          content: invocation.result.content,
+        });
+      }
+      toolMs += Math.round(performance.now() - toolStarted);
+    }
+
+    yield { type: 'done', content: finalContent, invocations, toolMs };
+  }
+
+  /**
+   * Non-streaming answer. Used by evaluation and by clients that want JSON.
+   *
+   * Runs the same loop as the streaming path and discards the token events, so
+   * the two cannot drift apart in behaviour.
+   */
   async answer(request: RagRequest): Promise<RagAnswer> {
     const started = performance.now();
     const prepared = await this.prepare(request);
-    const retrievalMs = prepared.retrieval.timings.totalMs;
 
     const llmStarted = performance.now();
-    const completion = await this.deps.chatModel.complete({
-      system: prepared.systemPrompt,
-      user: prepared.userPrompt,
-    });
-    const llmMs = Math.round(performance.now() - llmStarted);
+    let content = '';
+    let invocations: ToolInvocation[] = [];
+    let toolMs = 0;
 
-    const citations = selectUsedCitations(completion.content, prepared.citations);
+    const history = await this.recentConversationTurns(request.conversationId);
+
+    for await (const event of this.runToolLoop(
+      prepared.systemPrompt,
+      [...history, { role: 'user', content: prepared.userPrompt }],
+      this.toolContextFor(request),
+    )) {
+      if (event.type === 'token') content += event.text;
+      else if (event.type === 'reset') content = '';
+      else if (event.type === 'done') {
+        // A step that only produced text has already been accumulated above;
+        // `content` from the loop is authoritative when it is non-empty.
+        if (event.content.length > 0) content = event.content;
+        invocations = event.invocations;
+        toolMs = event.toolMs;
+      }
+    }
+
+    const llmMs = Math.round(performance.now() - llmStarted) - toolMs;
+    const citations = selectUsedCitations(content, prepared.citations);
 
     return {
-      answer: completion.content,
+      answer: content,
+      toolInvocations: invocations,
       citations,
-      answerStatus: classifyAnswer(completion.content, prepared.hasContext, citations),
+      answerStatus: classifyAnswer(content, prepared.hasContext, citations, invocations.length > 0),
       standaloneQuery: prepared.standaloneQuery,
-      model: completion.model,
+      model: this.deps.chatModel.model,
       contextTokens: prepared.contextTokens,
-      promptTokens: completion.promptTokens,
-      completionTokens: completion.completionTokens,
-      retrievalMs,
-      llmMs,
+      promptTokens: null,
+      completionTokens: null,
+      retrievalMs: prepared.retrieval.timings.totalMs,
+      llmMs: Math.max(0, llmMs),
+      toolMs,
       totalMs: Math.round(performance.now() - started),
       retrievalLogId: prepared.retrieval.retrievalLogId,
+    };
+  }
+
+  /** Identity and turn scope for tools. Never derived from model output. */
+  private toolContextFor(request: RagRequest): ToolContext {
+    return {
+      employeeId: request.employeeId ?? this.config.hcm.defaultEmployeeId,
+      conversationId: request.conversationId ?? null,
+      turnId: request.turnId ?? randomUUID(),
     };
   }
 
@@ -255,6 +466,8 @@ export class RagService {
   async *streamAnswer(request: RagRequest): AsyncGenerator<
     | { type: 'prepared'; preparation: RagPreparation }
     | { type: 'token'; text: string }
+    | { type: 'reset' }
+    | { type: 'tool'; invocation: ToolInvocation }
     | { type: 'final'; answer: RagAnswer },
     void,
     void
@@ -265,24 +478,50 @@ export class RagService {
 
     const llmStarted = performance.now();
     let content = '';
+    let invocations: ToolInvocation[] = [];
+    let toolMs = 0;
 
-    for await (const token of this.deps.chatModel.stream({
-      system: prepared.systemPrompt,
-      user: prepared.userPrompt,
-    })) {
-      content += token;
-      yield { type: 'token', text: token };
+    const history = await this.recentConversationTurns(request.conversationId);
+
+    for await (const event of this.runToolLoop(
+      prepared.systemPrompt,
+      [...history, { role: 'user', content: prepared.userPrompt }],
+      this.toolContextFor(request),
+    )) {
+      switch (event.type) {
+        case 'token':
+          content += event.text;
+          yield { type: 'token', text: event.text };
+          break;
+
+        case 'reset':
+          // The model wrote before it had tool results. Retract what was shown.
+          content = '';
+          yield { type: 'reset' };
+          break;
+
+        case 'tool':
+          yield { type: 'tool', invocation: event.invocation };
+          break;
+
+        case 'done':
+          if (event.content.length > 0) content = event.content;
+          invocations = event.invocations;
+          toolMs = event.toolMs;
+          break;
+      }
     }
 
-    const llmMs = Math.round(performance.now() - llmStarted);
+    const llmMs = Math.max(0, Math.round(performance.now() - llmStarted) - toolMs);
     const citations = selectUsedCitations(content, prepared.citations);
 
     yield {
       type: 'final',
       answer: {
         answer: content,
+        toolInvocations: invocations,
         citations,
-        answerStatus: classifyAnswer(content, prepared.hasContext, citations),
+        answerStatus: classifyAnswer(content, prepared.hasContext, citations, invocations.length > 0),
         standaloneQuery: prepared.standaloneQuery,
         model: this.deps.chatModel.model,
         contextTokens: prepared.contextTokens,
@@ -290,6 +529,7 @@ export class RagService {
         completionTokens: null,
         retrievalMs: prepared.retrieval.timings.totalMs,
         llmMs,
+        toolMs,
         totalMs: Math.round(performance.now() - started),
         retrievalLogId: prepared.retrieval.retrievalLogId,
       },

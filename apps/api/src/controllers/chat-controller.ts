@@ -8,12 +8,15 @@
  * rather than nothing at all.
  */
 
+import { randomUUID } from 'node:crypto';
 import type {
   ChatMessage,
   ChatStreamEvent,
   ConversationSummary,
   RetrievalFilters,
+  ToolActivity,
 } from '@docs-rag/shared';
+import type { ToolInvocation } from '../modules/chat/tools/types.js';
 import type { ConversationRepository } from '../repositories/conversation-repository.js';
 import { mapChatMessage, mapConversationSummary } from '../repositories/conversation-repository.js';
 import type { RagService } from '../modules/chat/rag-service.js';
@@ -32,6 +35,25 @@ export interface ChatStreamRequest {
   message: string;
   filters?: RetrievalFilters;
   requestId: string;
+}
+
+/**
+ * Project a tool invocation onto the wire.
+ *
+ * The model's arguments travel, because seeing exactly what was requested is the
+ * point of showing tool activity at all. The result payload does not: it can be
+ * large, and the summary is what a person actually reads.
+ */
+function toToolActivity(invocation: ToolInvocation): ToolActivity {
+  return {
+    id: invocation.id,
+    name: invocation.name,
+    arguments: invocation.arguments,
+    refused: invocation.result.refused ?? false,
+    error: invocation.result.error ?? null,
+    summary: invocation.result.content,
+    durationMs: invocation.durationMs,
+  };
 }
 
 export class ChatController {
@@ -105,11 +127,14 @@ export class ChatController {
       assistantMessageId = assistant.id;
 
       let content = '';
+      const toolActivity: ToolActivity[] = [];
 
       for await (const event of this.deps.rag.streamAnswer({
         question: request.message,
         conversationId,
         messageId: assistant.id,
+        // One id for the whole turn, so a retried write inside it is idempotent.
+        turnId: randomUUID(),
         ...(request.filters ? { filters: request.filters } : {}),
         source: 'CHAT',
       })) {
@@ -138,6 +163,23 @@ export class ChatController {
             break;
           }
 
+          case 'reset': {
+            // The model started writing, then decided it needed tools. Tell the
+            // client to discard what it has rendered so far.
+            content = '';
+            const reset: ChatStreamEvent = { type: 'reset' };
+            stream.send('reset', reset);
+            break;
+          }
+
+          case 'tool': {
+            const activity = toToolActivity(event.invocation);
+            toolActivity.push(activity);
+            const toolEvent: ChatStreamEvent = { type: 'tool', activity };
+            stream.send('tool', toolEvent);
+            break;
+          }
+
           case 'final': {
             // Citations are emitted individually so the client can render the
             // source panel incrementally, then repeated in `complete` so a
@@ -152,6 +194,7 @@ export class ChatController {
               citations: event.answer.citations,
               answerStatus: event.answer.answerStatus,
               model: event.answer.model,
+              toolActivity,
               contextTokens: event.answer.contextTokens,
               retrievalMs: event.answer.retrievalMs,
               llmMs: event.answer.llmMs,
@@ -163,9 +206,11 @@ export class ChatController {
               messageId: assistant.id,
               answerStatus: event.answer.answerStatus,
               citations: event.answer.citations,
+              toolActivity,
               timings: {
                 retrievalMs: event.answer.retrievalMs,
                 llmMs: event.answer.llmMs,
+                toolMs: event.answer.toolMs,
                 totalMs: event.answer.totalMs,
               },
             };
@@ -177,8 +222,10 @@ export class ChatController {
                 messageId: assistant.id,
                 answerStatus: event.answer.answerStatus,
                 citations: event.answer.citations.length,
+                tools: toolActivity.map((activity) => activity.name),
                 retrievalMs: event.answer.retrievalMs,
                 llmMs: event.answer.llmMs,
+                toolMs: event.answer.toolMs,
               },
               'chat turn complete',
             );
@@ -244,6 +291,7 @@ export class ChatController {
     const answer = await this.deps.rag.answer({
       question: request.message,
       conversationId,
+      turnId: randomUUID(),
       ...(request.filters ? { filters: request.filters } : {}),
       source: 'CHAT',
     });
@@ -262,6 +310,7 @@ export class ChatController {
       llmMs: answer.llmMs,
       totalMs: answer.totalMs,
       answerStatus: answer.answerStatus,
+      metadata: { toolActivity: answer.toolInvocations.map(toToolActivity) },
     });
 
     return { conversationId, message: mapChatMessage(row) };

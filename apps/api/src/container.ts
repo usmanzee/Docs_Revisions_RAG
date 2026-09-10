@@ -27,6 +27,8 @@ import { RagService } from './modules/chat/rag-service.js';
 import { CorpusGenerator } from './modules/corpus/corpus-generator.js';
 import { RevisionSimulator } from './modules/corpus/revision-simulator.js';
 import { getEmbeddingProvider, type EmbeddingProvider } from './modules/embeddings/index.js';
+import { getHcmClient, type HcmClient } from './modules/hcm/index.js';
+import { createLeaveTools } from './modules/chat/tools/leave-tools.js';
 import { DocumentIngestionService } from './modules/ingestion/ingestion-service.js';
 import { createIngestionScheduler, type IngestionScheduler } from './modules/ingestion/scheduler.js';
 import { getOCRProvider, type OCRProvider } from './modules/ocr/index.js';
@@ -46,6 +48,7 @@ export interface AppContainer {
   vision: VisionDocumentEnricher;
   embeddings: EmbeddingProvider;
   chatModel: ChatModelProvider;
+  hcm: HcmClient;
 
   retrieval: RetrievalService;
   rag: RagService;
@@ -64,6 +67,7 @@ export interface ContainerOverrides {
   storage?: DocumentStorage;
   embeddings?: EmbeddingProvider;
   chatModel?: ChatModelProvider;
+  hcm?: HcmClient;
   ocr?: OCRProvider;
   /** Skip scheduler construction; tests never want a cron job running. */
   withScheduler?: boolean;
@@ -79,6 +83,7 @@ export function createContainer(overrides: ContainerOverrides = {}): AppContaine
   const vision = createVisionEnricher(config);
   const embeddings = overrides.embeddings ?? getEmbeddingProvider();
   const chatModel = overrides.chatModel ?? getChatModelProvider();
+  const hcm = overrides.hcm ?? getHcmClient();
 
   const documentRepository = new DocumentRepository(pool);
   const revisionRepository = new RevisionRepository(pool);
@@ -97,10 +102,16 @@ export function createContainer(overrides: ContainerOverrides = {}): AppContaine
     config,
   });
 
+  // Leave tools are offered only when an HCM is actually configured. An
+  // assistant that advertises a capability it cannot deliver is worse than one
+  // that never mentions it.
+  const tools = config.hcm.toolsEnabled && hcm.isConfigured() ? createLeaveTools(hcm) : [];
+
   const rag = new RagService({
     retrieval,
     chatModel,
     conversations: conversationRepository,
+    tools,
     config,
   });
 
@@ -137,6 +148,7 @@ export function createContainer(overrides: ContainerOverrides = {}): AppContaine
     vision,
     embeddings,
     chatModel,
+    hcm,
     retrieval,
     rag,
     ingestion,

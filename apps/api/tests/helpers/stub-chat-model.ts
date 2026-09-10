@@ -12,13 +12,24 @@ import type {
   ChatCompletionRequest,
   ChatCompletionResult,
   ChatModelProvider,
+  ToolAwareRequest,
+  ToolDecision,
 } from '../../src/modules/chat/chat-model.js';
+import type { ProposedToolCall } from '../../src/modules/chat/tools/executor.js';
 
 export interface StubChatModelOptions {
   /** Force every answer to be this text. */
   fixedAnswer?: string;
   /** Throw on the next call, to exercise error handling. */
   failNext?: boolean;
+  /**
+   * Tool calls to emit, one batch per model step.
+   *
+   * Scripting the tool exchange keeps the assertions about the *pipeline* -
+   * gating, identity injection, event ordering - rather than about whether a
+   * real model happened to choose the right tool that day.
+   */
+  toolCallScript?: ProposedToolCall[][];
 }
 
 export class StubChatModel implements ChatModelProvider {
@@ -27,11 +38,16 @@ export class StubChatModel implements ChatModelProvider {
 
   /** Every prompt this model was given, for assertions about grounding. */
   readonly prompts: ChatCompletionRequest[] = [];
+  /** Every tool-aware request, so tests can inspect what the model was offered. */
+  readonly toolRequests: ToolAwareRequest[] = [];
+
+  private scriptStep = 0;
 
   constructor(private options: StubChatModelOptions = {}) {}
 
   setOptions(options: StubChatModelOptions): void {
     this.options = options;
+    this.scriptStep = 0;
   }
 
   isAvailable(): boolean {
@@ -86,6 +102,53 @@ export class StubChatModel implements ChatModelProvider {
       promptTokens: 10,
       completionTokens: 5,
     };
+  }
+
+  /**
+   * One scripted tool-calling step.
+   *
+   * Emits the next batch from `toolCallScript`, if any; otherwise produces a
+   * normal answer built from the retrieved context, exactly as `stream` does.
+   */
+  async *streamWithTools(
+    request: ToolAwareRequest,
+  ): AsyncIterable<{ type: 'token'; text: string } | { type: 'decision'; decision: ToolDecision }> {
+    this.toolRequests.push(request);
+
+    const scripted = this.options.toolCallScript?.[this.scriptStep];
+    this.scriptStep += 1;
+
+    if (scripted && scripted.length > 0) {
+      yield { type: 'decision', decision: { content: '', toolCalls: scripted } };
+      return;
+    }
+
+    // No tools wanted: answer from whatever the turn contains. Tool results are
+    // summarised so tests can assert the model actually saw them.
+    const toolOutput = request.turns
+      .filter((turn) => turn.role === 'tool')
+      .map((turn) => (turn as { content: string }).content)
+      .join('\n');
+
+    // The last user turn is the current question; earlier ones are replayed
+    // conversation history and carry no document context.
+    const userTurn = request.turns.findLast((turn) => turn.role === 'user') as
+      | { content: string }
+      | undefined;
+
+    // Echo the whole tool output, flattened. A real model would summarise it;
+    // reproducing it verbatim lets a test assert the model actually received
+    // the data rather than that the stub happened to pick the right line.
+    const answer =
+      toolOutput.length > 0
+        ? `Based on the leave system: ${toolOutput.replace(/\s*\n\s*/g, ' ')}`
+        : this.answerFor({ system: request.system, user: userTurn?.content ?? '' });
+
+    for (const word of answer.split(' ')) {
+      yield { type: 'token', text: `${word} ` };
+    }
+
+    yield { type: 'decision', decision: { content: answer, toolCalls: [] } };
   }
 
   async *stream(request: ChatCompletionRequest): AsyncIterable<string> {

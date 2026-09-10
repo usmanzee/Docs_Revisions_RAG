@@ -52,6 +52,8 @@ can be measured objectively rather than eyeballed.
 | Streams answers over Server-Sent Events | `routes/chat.ts`, `utils/sse.ts` |
 | Measures Recall@k, MRR, revision accuracy and refusal behaviour against a gold dataset | `apps/api/src/modules/evaluation` |
 | Benchmarks retrieval latency and reports real index sizes | `scripts/benchmark-retrieval.ts` |
+| Stand-in HCM leave API — balances, apply, withdraw, cancel, approve, dry-run validation | `apps/hcm-mock`, `packages/hcm-contract` |
+| Assistant acts on leave through gated tools, with every action shown to the user | `apps/api/src/modules/chat/tools`, `apps/api/src/modules/hcm` |
 
 ---
 
@@ -814,6 +816,148 @@ before and after — do not tune blind.
 
 ---
 
+## The HCM leave service
+
+Alongside answering questions *about* documents, the assistant is being extended
+to act on the systems those documents describe — starting with employee leave.
+
+The real HCM API is not available yet, so `apps/hcm-mock` implements the
+contract in its place. It runs as **its own process on its own port (3100)**,
+deliberately not as routes inside the main API: the assistant talks to it over
+HTTP exactly as it will talk to the real system, so swapping means changing a
+base URL and a credential.
+
+```
+packages/hcm-contract   the published contract — types + Zod schemas
+apps/hcm-mock           a service that implements it (disposable data)
+```
+
+```bash
+npm run dev            # hcm-mock :3100 + api :3000 + web :5173
+npm run dev:hcm        # just the HCM service
+npm run test:hcm       # 65 tests
+```
+
+It covers balances, history, applying, withdrawing, cancelling, manager
+decisions, and a **dry-run validation** endpoint that answers "can I take next
+week off?" without committing anyone to anything.
+
+### Why the rules mirror the corpus
+
+The mock's defaults are the numbers in `HR-POL-001`, the Annual Leave Policy in
+the generated document corpus: 20 days standard entitlement, 8 days' notice for
+short leave, 31 for long, 10 consecutive days maximum, 3 months' probation.
+
+That alignment is the point. It lets the assistant do something neither half
+could do alone:
+
+```
+  Corpus  → "The standard annual leave entitlement is 20 days per full
+             leave year, exclusive of public holidays." [HR-POL-001 §2]
+  HCM     → 14 of 20 days available, 6 taken
+```
+
+Cite the policy *and* act on the system that implements it, without the two
+contradicting each other.
+
+Full detail — endpoints, lifecycle, rules, the seeded population and how to
+simulate a slow or flaky upstream — is in
+**[apps/hcm-mock/README.md](apps/hcm-mock/README.md)**.
+
+### The assistant can act, not just answer
+
+The chat pipeline now offers the model a set of leave tools alongside the
+retrieved documents. Retrieval still always runs — the grounding guarantees are
+unchanged — and the tools sit on top, so a question needing both is answered
+from both.
+
+```mermaid
+flowchart TB
+    Q["User question"] --> R["Hybrid retrieval<br/>(always runs)"]
+    R --> M["Model, with leave tools bound"]
+
+    M -->|no tools needed| A["Streamed answer, cited"]
+    M -->|asks for tools| G{"Executor"}
+
+    G -->|schema invalid| REJ["Refused, told why"]
+    G -->|write without validation| REJ
+    G -->|duplicate write| REJ
+    G -->|allowed| T["HCM API"]
+
+    T --> RES["Result appended"]
+    REJ --> RES
+    RES --> M
+
+    subgraph guards["Enforced in code, not by the prompt"]
+        direction LR
+        I["Identity injected<br/>from the session"]
+        W["Writes require a prior<br/>successful validation"]
+        L["Loop bounded by<br/>CHAT_MAX_TOOL_ITERATIONS"]
+    end
+```
+
+| Tool | Kind | |
+|---|---|---|
+| `get_leave_balance` | read | available, taken, scheduled, pending |
+| `get_leave_history` | read | past, pending and upcoming requests |
+| `validate_leave_request` | read | dry run — would this be accepted? |
+| `apply_for_leave` | **write** | requires a successful validation first |
+| `withdraw_leave_request` | **write** | undecided requests only |
+| `cancel_leave_request` | **write** | approved future leave |
+
+Three properties are enforced in code rather than requested in the prompt,
+because a prompt is a request and these are rules:
+
+**No tool accepts an employee identifier.** Identity comes from the session and
+is injected by the executor. A prompt injection hidden in a document cannot talk
+the model into reading somebody else's balance, because the model has no way to
+name them. A unit test asserts no schema mentions one.
+
+**A booking requires a prior successful validation in the same turn.** The
+executor refuses `apply_for_leave` otherwise, and tells the model to validate
+first. A *failed* validation does not unlock it either.
+
+**Identical writes are refused within a turn**, and the idempotency key sent to
+the HCM is derived from the turn, so a retry cannot book the same leave twice.
+
+Everything the assistant did is streamed to the client as `tool` events and
+rendered inline above the answer — writes expanded by default. When an assistant
+can change a real record, "it said it booked something" is not good enough.
+
+A real exchange, verbatim:
+
+```
+You: Can I take 16 to 18 November 2026 off as annual leave?
+  🔎 validate_leave_request(ANNUAL, 2026-11-16 → 2026-11-18)
+  DA: You can take annual leave from 16 to 18 November 2026. This would use
+      3 working days, reducing your balance from 14 to 11 days. The policy
+      requires at least 8 calendar days' notice for leave up to five working
+      days [2].
+
+You: Yes please, go ahead and book it.
+  🔎 validate_leave_request(…)
+  ✅ apply_for_leave(…)
+  DA: Your annual leave request for 16 to 18 November 2026, totalling 3
+      working days, has been submitted for approval. The approver is
+      Daniel Whitfield.
+```
+
+Note where the citation is: on the *policy* statement, which came from a
+document. The balance and the booking came from the live system and carry none —
+attributing a live number to a policy document would be a false citation.
+
+Refusals are explained specifically rather than as a generic failure:
+
+```
+You: Can I take all of December 2026 off?
+  🚫 validate_leave_request(…)
+  DA: You cannot, for two reasons: the request is 22 working days but only 11
+      remain available, and more than 10 consecutive days requires written
+      approval from your department head [3].
+```
+
+---
+
 ## Configuration
 
 Every setting is validated at boot by a Zod schema in `apps/api/src/config/env.ts`. Nothing else in the
@@ -836,6 +980,10 @@ The settings worth understanding:
 | `OCR_MIN_NATIVE_CHARS` / `OCR_MIN_CHARS_PER_PAGE_AREA` | 180 / 0.0004 | When a page is treated as scanned |
 | `VISION_ENABLED` | `false` | Diagram description; off because of cost |
 | `ENABLE_DEBUG_ENDPOINTS` | `false` | Debug routes are on outside production and require explicit opt-in inside it |
+| `HCM_BASE_URL` | *(empty)* | Empty disables leave tools entirely — the assistant then never mentions the capability |
+| `HCM_TOOLS_ENABLED` | `true` | Turn the tools off without unconfiguring the HCM |
+| `CHAT_DEFAULT_EMPLOYEE_ID` | `E10001` | **Who the assistant acts as.** Chat has no sign-in yet |
+| `CHAT_MAX_TOOL_ITERATIONS` | `4` | Bound on the agentic loop |
 
 ### Changing the embedding model
 
@@ -873,7 +1021,9 @@ deep inside ingestion.
 | `npm run eval:retrieval` | Score retrieval against the gold dataset |
 | `npm run eval:rag` | Score end-to-end answers, citations and refusals |
 | `npm run benchmark:retrieval` | Latency percentiles and real index sizes |
-| `npm run dev` | API and web client together |
+| `npm run dev` | HCM mock, API and web client together |
+| `npm run dev:hcm` | Just the mock HCM leave service |
+| `npm run test:hcm` | The HCM service's own test suite |
 | `npm run build` | Build all workspaces |
 | `npm test` | Full test suite |
 | `npm run typecheck` | Typecheck every workspace |
@@ -918,7 +1068,14 @@ apps/
         documents/   register browser and revision timeline
         admin/       lifecycle console and retrieval debug
         sources/     citation source panel
-packages/shared/     types shared by API and client
+  hcm-mock/          stand-in HCM leave service (own process, own port)
+    src/
+      domain/        calendar, balances, rules engine, seed population, store
+      routes/        the HCM API surface
+      middleware/    auth, error envelope, latency/failure simulation
+packages/
+  shared/            types shared by API and client
+  hcm-contract/      the HCM API's published contract (types + Zod schemas)
 scripts/             thin entry points for the npm commands
 migrations/          numbered, checksummed SQL
 docker/              Dockerfiles, nginx config, Postgres init
@@ -1009,7 +1166,21 @@ including why authorisation must filter *before* retrieval rather than after.
 
 Stated plainly, because a system that hides its edges is harder to trust.
 
-- **Authentication is a shared secret.** See above.
+- **Authentication is a shared secret**, and the leave tools inherit that. Chat
+  has no sign-in, so the assistant always acts as `CHAT_DEFAULT_EMPLOYEE_ID`. The
+  identity injection is built correctly — the model cannot choose whose data it
+  touches — but *which* identity is a fixed constant rather than a signed-in
+  user. The UI says so plainly in a banner rather than leaving it implicit. This
+  is the single thing that must change before anyone else uses it.
+- **Tool arguments are model-generated.** The executor validates them against a
+  strict schema, gates writes behind a validation, and blocks duplicates within a
+  turn. It cannot stop a model from proposing a *plausible but wrong* date that
+  passes validation, which is why the prompt requires stating resolved dates back
+  to the user before acting, and why every action is shown in the UI.
+- **The confirmation step is prompt-enforced, not code-enforced.** The executor
+  guarantees a validation precedes a booking; it does not know whether the user
+  agreed. A two-phase confirm — where the client must echo a token back before a
+  write executes — would close that, and is the obvious next hardening step.
 - **Historical-revision retrieval has no ANN index.** The HNSW index is partial on `is_current`, so
   `includeHistorical` queries fall back to an exact scan. Fine at demo scale, a problem at a million
   chunks; the fix is a second index, at the cost of build time and disk.

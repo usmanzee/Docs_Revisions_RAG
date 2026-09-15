@@ -54,14 +54,32 @@ export async function loadGoldDataset(filePath?: string, config: AppConfig = get
 /**
  * Is a retrieved chunk a correct answer to this question?
  *
- * Both the document and the revision must match. `expectedRevision` is the
- * revision that should be current at evaluation time, so a hit on a superseded
- * revision is scored as a miss - deliberately.
+ * The document must match. What "the right revision" means depends on the kind
+ * of question, and conflating the two scores correct behaviour as failure:
+ *
+ *   - A REVISION_SENSITIVE question is *about* a particular revision, so the
+ *     recorded revision number is the answer and must match exactly.
+ *
+ *   - Every other question asks what the policy says, and the answer is whatever
+ *     the CURRENT revision says. The revision number recorded when the gold data
+ *     was written is incidental, and goes stale the moment a new revision is
+ *     published - which `npm run corpus:revise` does on purpose. Pinning it
+ *     meant a document revised after generation scored as a miss even though
+ *     retrieval had correctly returned the current revision.
+ *
+ * `isCurrent` is what actually matters for a normal question, and it is checked
+ * directly rather than inferred from a number recorded hours earlier.
  */
 function isCorrect(candidate: RetrievalCandidate, question: GoldQuestion): boolean {
   if (candidate.documentCode !== question.expectedDocumentCode) return false;
-  if (question.expectedRevision !== null && candidate.revisionNumber !== question.expectedRevision) return false;
-  return true;
+
+  if (question.questionType === 'REVISION_SENSITIVE' && question.expectedRevision !== null) {
+    return candidate.revisionNumber === question.expectedRevision;
+  }
+
+  // A hit on a superseded revision is still a miss - just not because of the
+  // number the gold file happens to carry.
+  return candidate.isCurrent;
 }
 
 function sectionMatches(candidate: RetrievalCandidate, question: GoldQuestion): boolean {

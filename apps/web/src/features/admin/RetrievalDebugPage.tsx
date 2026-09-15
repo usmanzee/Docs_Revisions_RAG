@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { RetrievalDebugResponse } from '@docs-rag/shared';
-import { api } from '../../api/client.js';
+import { adminApi } from '../../api/admin-client.js';
 
 /**
  * Retrieval inspector.
@@ -21,7 +21,7 @@ export function RetrievalDebugPage() {
     setLoading(true);
     setError(null);
     try {
-      setResult(await api.debugRetrieval({ query: query.trim() }));
+      setResult(await adminApi.debugRetrieval({ query: query.trim() }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
       setResult(null);

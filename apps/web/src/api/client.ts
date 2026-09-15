@@ -11,18 +11,13 @@
  */
 
 import type {
-  AdminStats,
   ApiErrorBody,
   ChatMessage,
   ChunkDetail,
   ConversationSummary,
   DocumentDetail,
   DocumentSummary,
-  IngestionJobDetail,
-  IngestionJobSummary,
   Paginated,
-  RetrievalDebugResponse,
-  RetrievalFilters,
   RevisionContent,
   RevisionSummary,
 } from '@docs-rag/shared';
@@ -77,7 +72,7 @@ interface RequestOptions {
   signal?: AbortSignal;
 }
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers: Record<string, string> = {};
   if (options.body !== undefined) headers['content-type'] = 'application/json';
   if (options.admin) headers['x-admin-key'] = adminKey;
@@ -109,7 +104,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
 type QueryValue = string | number | boolean | null | undefined;
 
-function toQuery(params: Record<string, QueryValue>): string {
+export function toQuery(params: Record<string, QueryValue>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === null || value === undefined || value === '') continue;
@@ -173,62 +168,5 @@ export const api = {
     request<ChatMessage[]>(`/api/conversations/${conversationId}/messages`),
 
   deleteConversation: (id: string) =>
-    request<void>(`/api/conversations/${id}`, { method: 'DELETE' }),
-
-  // --- Admin ---------------------------------------------------------------
-
-  adminStats: () => request<AdminStats>('/api/admin/stats', { admin: true }),
-
-  schedulerStatus: () =>
-    request<{ enabled: boolean; cron: string | null; nextRun: string | null }>('/api/admin/scheduler', {
-      admin: true,
-    }),
-
-  listIngestionJobs: (limit = 15) =>
-    request<IngestionJobSummary[]>(`/api/admin/ingestion/jobs${toQuery({ limit })}`, { admin: true }),
-
-  getIngestionJob: (id: string) =>
-    request<IngestionJobDetail>(`/api/admin/ingestion/jobs/${id}`, { admin: true }),
-
-  runIngestion: (body: { limit?: number; skipDiscovery?: boolean } = {}) =>
-    request<{
-      jobId: string | null;
-      status: string;
-      processed: number;
-      skipped: number;
-      failed: number;
-      chunksCreated: number;
-      durationMs: number;
-      skippedReason?: string;
-    }>('/api/admin/ingestion/run', { method: 'POST', body, admin: true }),
-
-  createRevision: (documentId: string, body: { corrupt?: boolean; mutationType?: string } = {}) =>
-    request<{
-      documentCode: string;
-      revisionNumber: number;
-      previousRevisionNumber: number;
-      changeSummary: string;
-      mutation: { type: string; previousValue?: string; newValue?: string };
-      corrupt: boolean;
-    }>(`/api/admin/documents/${documentId}/create-revision`, { method: 'POST', body, admin: true }),
-
-  reprocessRevision: (revisionId: string) =>
-    request<{ processed: number; failed: number }>(`/api/admin/revisions/${revisionId}/reprocess`, {
-      method: 'POST',
-      body: {},
-      admin: true,
-    }),
-
-  generateCorpus: (body: { profile: string; count?: number; seed?: number; reset?: boolean }) =>
-    request<{
-      documentsWritten: number;
-      revisionsWritten: number;
-      evaluationQuestions: number;
-      durationMs: number;
-    }>('/api/admin/corpus/generate', { method: 'POST', body, admin: true }),
-
-  // --- Debug ---------------------------------------------------------------
-
-  debugRetrieval: (body: { query: string; filters?: RetrievalFilters }) =>
-    request<RetrievalDebugResponse>('/api/debug/retrieval', { method: 'POST', body, admin: true }),
+    request<void>(`/api/conversations/${id}`, { method: 'DELETE' })
 };

@@ -1,28 +1,28 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api, getAdminKey, setAdminKey } from '../../api/client.js';
+import { api } from '../../api/client.js';
+import { adminApi } from '../../api/admin-client.js';
 import { useAsync } from '../../hooks/useAsync.js';
 import { JobStatusBadge } from '../../components/Badges.js';
 import { formatBytes, formatDuration, formatNumber, formatRelative } from '../../components/Format.js';
 
 /**
- * Development console.
+ * Operations console overview.
  *
  * Exists to make the whole lifecycle drivable and observable from one screen:
  * generate a corpus, create a revision, run ingestion, watch a revision fail and
- * recover it. Everything here goes through the admin-guarded API.
+ * recover it. Everything here goes through the admin-guarded API, and the
+ * credential is established once by AdminLayout rather than per page.
  */
 export function AdminPage() {
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
-  const [keyInput, setKeyInput] = useState(getAdminKey());
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
-  const stats = useAsync(() => api.adminStats(), []);
-  const jobs = useAsync(() => api.listIngestionJobs(12), []);
-  const scheduler = useAsync(() => api.schedulerStatus(), []);
+  const stats = useAsync(() => adminApi.stats(), []);
+  const jobs = useAsync(() => adminApi.listIngestionJobs(12), []);
+  const scheduler = useAsync(() => adminApi.schedulerStatus(), []);
   const jobDetail = useAsync(
-    () => (selectedJobId ? api.getIngestionJob(selectedJobId) : Promise.resolve(null)),
+    () => (selectedJobId ? adminApi.getIngestionJob(selectedJobId) : Promise.resolve(null)),
     [selectedJobId],
   );
 
@@ -48,13 +48,13 @@ export function AdminPage() {
 
   const generateCorpus = () =>
     run('corpus', async () => {
-      const result = await api.generateCorpus({ profile: 'smoke', reset: true });
+      const result = await adminApi.generateCorpus({ profile: 'smoke', reset: true });
       return `Generated ${result.documentsWritten} documents (${result.revisionsWritten} revisions, ${result.evaluationQuestions} gold questions) in ${formatDuration(result.durationMs)}. All revisions are PENDING.`;
     });
 
   const runIngestion = () =>
     run('ingest', async () => {
-      const result = await api.runIngestion();
+      const result = await adminApi.runIngestion();
       if (result.skippedReason) return `Run skipped: ${result.skippedReason}`;
       return `Ingestion ${result.status}: ${result.processed} processed, ${result.skipped} skipped, ${result.failed} failed, ${result.chunksCreated} chunks in ${formatDuration(result.durationMs)}.`;
     });
@@ -66,7 +66,7 @@ export function AdminPage() {
       const candidate = documents.items.find((document) => document.currentRevisionNumber !== null);
       if (!candidate) return 'No document available to revise. Generate a corpus first.';
 
-      const created = await api.createRevision(candidate.id, { corrupt });
+      const created = await adminApi.createRevision(candidate.id, { corrupt });
       return corrupt
         ? `Created a damaged revision ${created.revisionNumber} of ${created.documentCode}. Run ingestion: it must fail for this revision only, leaving revision ${created.previousRevisionNumber} current and searchable.`
         : `Created revision ${created.revisionNumber} of ${created.documentCode}: ${created.changeSummary} Revision ${created.previousRevisionNumber} stays current until ingestion succeeds.`;
@@ -82,7 +82,7 @@ export function AdminPage() {
       const failed = detail.revisions.find((revision) => revision.processingStatus === 'FAILED');
       if (!failed) return 'No failed revisions to reprocess.';
 
-      const result = await api.reprocessRevision(failed.id);
+      const result = await adminApi.reprocessRevision(failed.id);
       return `Reprocessed ${detail.documentCode} revision ${failed.revisionNumber}: ${result.processed} processed, ${result.failed} failed.`;
     });
 
@@ -92,45 +92,22 @@ export function AdminPage() {
     <>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Admin &amp; development</h1>
+          <h1 className="page-title">Overview</h1>
           <p className="page-subtitle">Drive the corpus, ingestion and revision lifecycle end to end.</p>
         </div>
         <div className="page-actions">
-          <Link className="badge" style={{ padding: '7px 13px', textDecoration: 'none' }} to="/admin/retrieval">
-            Retrieval debug →
-          </Link>
+          {/* Navigation between console pages lives in the console header. */}
           <button onClick={refreshAll}>Refresh</button>
         </div>
       </div>
 
       <div className="page-body">
+        {/* Access is established by AdminLayout before this page renders, so a
+            failure here is a real fault rather than a missing credential. */}
         {stats.error && (
           <div className="card" style={{ marginBottom: 18 }}>
-            <div className="card-body stack">
+            <div className="card-body">
               <div className="alert error">{stats.error.message}</div>
-              <div>
-                <div className="source-field-label">Admin API key</div>
-                <div className="row">
-                  <input
-                    type="password"
-                    value={keyInput}
-                    onChange={(event) => setKeyInput(event.target.value)}
-                    placeholder="ADMIN_API_KEY"
-                  />
-                  <button
-                    className="primary"
-                    onClick={() => {
-                      setAdminKey(keyInput);
-                      refreshAll();
-                    }}
-                  >
-                    Save
-                  </button>
-                </div>
-                <div className="subtle" style={{ fontSize: 12, marginTop: 6 }}>
-                  Must match ADMIN_API_KEY in the API environment. Held in this tab only.
-                </div>
-              </div>
             </div>
           </div>
         )}

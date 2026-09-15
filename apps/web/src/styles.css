@@ -22,6 +22,9 @@
   --accent: #2f5bd7;
   --accent-hover: #2749b0;
   --accent-soft: #e8eefc;
+  /* Operations console accent, so /admin never looks like the chat app. */
+  --admin-accent: #9333ea;
+  --admin-accent-soft: rgba(147, 51, 234, 0.12);
   --accent-text: #ffffff;
 
   --success: #16794a;
@@ -61,6 +64,9 @@
     --accent: #7aa2f7;
     --accent-hover: #94b4ff;
     --accent-soft: #1e2740;
+    /* Operations console accent, so /admin never looks like the chat app. */
+    --admin-accent: #c084fc;
+    --admin-accent-soft: rgba(192, 132, 252, 0.16);
     --accent-text: #10131a;
 
     --success: #7ee0ab;
@@ -499,3 +505,91 @@ code, pre { font-family: var(--font-mono); font-size: 12.5px; }
   background: var(--warning-soft); color: var(--warning);
   font-size: 12px; margin-bottom: 10px; border: 1px solid var(--warning);
 }
+
+/* ==========================================================================
+   Operations console (/admin)
+   --------------------------------------------------------------------------
+   A deliberately different shell from the employee application. The buttons in
+   here rebuild corpora and reprocess revisions, so it should never be
+   momentarily unclear which of the two you are looking at: no chat sidebar, a
+   full-width top bar, and a distinct accent.
+   ========================================================================== */
+
+.admin-app {
+  --accent: var(--admin-accent);
+  --accent-soft: var(--admin-accent-soft);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg);
+}
+
+.admin-bar {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  /* A thin coloured edge is the fastest signal that this is not the chat app. */
+  box-shadow: inset 0 3px 0 var(--admin-accent);
+  flex: 0 0 auto;
+}
+
+.admin-brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.admin-brand-mark {
+  width: 32px; height: 32px; display: grid; place-items: center;
+  border-radius: var(--radius-sm); background: var(--admin-accent-soft);
+  font-size: 16px;
+}
+.admin-brand-text { font-weight: 650; font-size: 14px; letter-spacing: -0.01em; }
+.admin-brand-sub { font-size: 11.5px; color: var(--text-subtle); }
+
+.admin-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.admin-nav-link {
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 550; color: var(--text-muted);
+  text-decoration: none; border: 1px solid transparent;
+}
+.admin-nav-link:hover { background: var(--surface-2); color: var(--text); }
+.admin-nav-link.active {
+  background: var(--admin-accent-soft); color: var(--admin-accent);
+  border-color: var(--admin-accent);
+}
+
+.admin-bar-end { display: flex; align-items: center; gap: 8px; }
+.admin-exit {
+  font-size: 13px; color: var(--text-muted); text-decoration: none;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+}
+.admin-exit:hover { background: var(--surface-2); color: var(--text); }
+
+.admin-main { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+/* --- Lock screen ---------------------------------------------------------- */
+
+.admin-gate {
+  min-height: 100vh; display: grid; place-items: center;
+  padding: 24px; background: var(--bg);
+}
+
+.admin-gate-card {
+  width: min(400px, 100%);
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.admin-gate-card h1 { font-size: 19px; margin: 0; letter-spacing: -0.02em; }
+.admin-gate-card p { margin: 0; font-size: 13px; line-height: 1.55; }
+.admin-gate-card input { width: 100%; }
+.admin-gate-mark {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  border-radius: var(--radius-sm); background: var(--admin-accent-soft); font-size: 20px;
+}
+
+.link-button {
+  background: none; border: none; padding: 0; color: var(--text-subtle);
+  font-size: 12.5px; cursor: pointer; text-align: left; text-decoration: underline;
+}
+.link-button:hover { color: var(--text); background: none; }

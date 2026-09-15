@@ -11,12 +11,30 @@ import { formatBytes, formatDate, formatDateTime, formatNumber } from '../../com
  * including superseded ones, which is what makes the lifecycle legible rather
  * than something you have to take on trust.
  */
-export function DocumentDetailPage() {
+export interface DocumentDetailPageProps {
+  /**
+   * Revision lifecycle controls, injected by the operations console.
+   *
+   * Omitted in the employee application, which views documents but never
+   * changes them. Passing the controls in rather than branching on a flag keeps
+   * their code out of the employee bundle entirely - the separation is in the
+   * build output, not just in an `if`.
+   */
+  renderControls?: (context: { documentId: string; reload: () => void }) => React.ReactNode;
+  /** Per-revision actions, rendered beside each revision row. */
+  renderRevisionControls?: (context: {
+    revisionId: string;
+    processingStatus: string;
+    reload: () => void;
+  }) => React.ReactNode;
+  /** Where the breadcrumb goes back to. */
+  backTo?: string;
+}
+
+export function DocumentDetailPage(props: DocumentDetailPageProps = {}) {
   const { documentId } = useParams();
   const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null);
   const [tab, setTab] = useState<'content' | 'chunks'>('content');
-  const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
   const document = useAsync(() => api.getDocument(documentId as string), [documentId]);
 
@@ -36,55 +54,8 @@ export function DocumentDetailPage() {
     [activeRevision?.id, tab],
   );
 
-  const createRevision = async (corrupt: boolean) => {
-    if (!document.data) return;
-    setBusy(corrupt ? 'corrupt' : 'revision');
-    setNotice(null);
 
-    try {
-      const created = await api.createRevision(document.data.id, { corrupt });
-      setNotice({
-        tone: 'ok',
-        text: corrupt
-          ? `Created revision ${created.revisionNumber} with a deliberately damaged file. Run ingestion: it must fail for this revision only, leaving revision ${created.previousRevisionNumber} current.`
-          : `Created revision ${created.revisionNumber}: ${created.changeSummary} Revision ${created.previousRevisionNumber} stays current until ingestion succeeds.`,
-      });
-      document.reload();
-    } catch (error) {
-      setNotice({ tone: 'error', text: error instanceof Error ? error.message : String(error) });
-    } finally {
-      setBusy(null);
-    }
-  };
 
-  const runIngestion = async () => {
-    setBusy('ingest');
-    setNotice(null);
-    try {
-      const result = await api.runIngestion();
-      setNotice({
-        tone: result.failed > 0 ? 'error' : 'ok',
-        text: `Ingestion ${result.status}: ${result.processed} processed, ${result.skipped} skipped, ${result.failed} failed.`,
-      });
-      document.reload();
-    } catch (error) {
-      setNotice({ tone: 'error', text: error instanceof Error ? error.message : String(error) });
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const reprocess = async (revisionId: string) => {
-    setBusy(revisionId);
-    try {
-      await api.reprocessRevision(revisionId);
-      document.reload();
-    } catch (error) {
-      setNotice({ tone: 'error', text: error instanceof Error ? error.message : String(error) });
-    } finally {
-      setBusy(null);
-    }
-  };
 
   if (document.loading) {
     return (
@@ -101,7 +72,7 @@ export function DocumentDetailPage() {
       <div className="page-body">
         <div className="alert error">{document.error?.message ?? 'Document not found'}</div>
         <p style={{ marginTop: 12 }}>
-          <Link to="/documents">← Back to documents</Link>
+          <Link to={props.backTo ?? '/documents'}>← Back to documents</Link>
         </p>
       </div>
     );
@@ -114,7 +85,7 @@ export function DocumentDetailPage() {
       <div className="page-header">
         <div style={{ minWidth: 0 }}>
           <div className="row" style={{ gap: 8 }}>
-            <Link to="/documents" className="subtle">
+            <Link to={props.backTo ?? '/documents'} className="subtle">
               Documents
             </Link>
             <span className="subtle">/</span>
@@ -130,25 +101,14 @@ export function DocumentDetailPage() {
           </p>
         </div>
 
-        <div className="page-actions">
-          <button disabled={busy !== null} onClick={() => void createRevision(false)}>
-            {busy === 'revision' ? <span className="spinner" /> : '+ Create revision'}
-          </button>
-          <button className="danger" disabled={busy !== null} onClick={() => void createRevision(true)}>
-            {busy === 'corrupt' ? <span className="spinner" /> : 'Create corrupt revision'}
-          </button>
-          <button className="primary" disabled={busy !== null} onClick={() => void runIngestion()}>
-            {busy === 'ingest' ? <span className="spinner" /> : 'Run ingestion'}
-          </button>
-        </div>
+        {props.renderControls && (
+          <div className="page-actions">
+            {props.renderControls({ documentId: detail.id, reload: document.reload })}
+          </div>
+        )}
       </div>
 
       <div className="page-body">
-        {notice && (
-          <div className={`alert ${notice.tone === 'ok' ? 'ok' : 'error'}`} style={{ marginBottom: 16 }}>
-            {notice.text}
-          </div>
-        )}
 
         <div className="grid cols-4" style={{ marginBottom: 18 }}>
           <div className="stat">
@@ -256,15 +216,11 @@ export function DocumentDetailPage() {
                         <a className="badge" style={{ padding: '5px 10px' }} href={api.revisionFileUrl(revision.id)}>
                           File
                         </a>
-                        {revision.processingStatus === 'FAILED' && (
-                          <button
-                            className="small"
-                            disabled={busy === revision.id}
-                            onClick={() => void reprocess(revision.id)}
-                          >
-                            {busy === revision.id ? <span className="spinner" /> : 'Reprocess'}
-                          </button>
-                        )}
+                        {props.renderRevisionControls?.({
+                          revisionId: revision.id,
+                          processingStatus: revision.processingStatus,
+                          reload: document.reload,
+                        })}
                       </div>
                     </div>
                   </div>

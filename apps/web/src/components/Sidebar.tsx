@@ -4,11 +4,14 @@ import type { ConversationSummary } from '@docs-rag/shared';
 import { api } from '../api/client.js';
 
 /**
- * Navigation and conversation history.
+ * Employee navigation and conversation history.
  *
  * Conversations reload on a custom window event rather than through a shared
  * store: the chat page is the only thing that creates them, and a one-line
  * event is a smaller price than a global state library for a single signal.
+ *
+ * There is no link to the operations console here on purpose - see
+ * EmployeeLayout for why.
  */
 export const CONVERSATIONS_CHANGED = 'docs-rag:conversations-changed';
 
@@ -70,12 +73,6 @@ export function Sidebar() {
         </NavLink>
         <NavLink to="/documents" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
           <span className="nav-icon">📄</span> Documents
-        </NavLink>
-        <NavLink to="/admin" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`} end>
-          <span className="nav-icon">⚙️</span> Admin
-        </NavLink>
-        <NavLink to="/admin/retrieval" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-          <span className="nav-icon">🔍</span> Retrieval debug
         </NavLink>
       </nav>
 

@@ -6,7 +6,18 @@ import { useAsync } from '../../hooks/useAsync.js';
 import { formatNumber, formatRelative } from '../../components/Format.js';
 
 /** Browse the document register with its per-document revision state. */
-export function DocumentsPage() {
+export interface DocumentsPageProps {
+  /**
+   * Route prefix for document links.
+   *
+   * The employee application and the operations console show the same list; they
+   * differ only in where a row leads - a read-only view, or one with lifecycle
+   * controls attached.
+   */
+  basePath?: string;
+}
+
+export function DocumentsPage({ basePath = '/documents' }: DocumentsPageProps = {}) {
   const [search, setSearch] = useState('');
   const [department, setDepartment] = useState('');
   const [documentType, setDocumentType] = useState('');
@@ -143,12 +154,12 @@ export function DocumentsPage() {
                 {documents.data?.items.map((document) => (
                   <tr key={document.id}>
                     <td className="nowrap">
-                      <Link to={`/documents/${document.id}`} className="doc-code">
+                      <Link to={`${basePath}/${document.id}`} className="doc-code">
                         {document.documentCode}
                       </Link>
                     </td>
                     <td>
-                      <Link to={`/documents/${document.id}`}>{document.title}</Link>
+                      <Link to={`${basePath}/${document.id}`}>{document.title}</Link>
                     </td>
                     <td className="nowrap">{document.department}</td>
                     <td className="nowrap">

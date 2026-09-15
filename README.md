@@ -958,6 +958,61 @@ You: Can I take all of December 2026 off?
 
 ---
 
+## Two applications, one origin
+
+The web client is split in two, because the people who ask "how much leave do I
+have?" and the people who rebuild a corpus are not the same people, and the
+buttons that do the second should not sit one click from the first.
+
+```
+/                 the assistant and the document browser   ← employees
+/admin/*          the operations console                   ← operators
+```
+
+| | Employee application | Operations console |
+|---|---|---|
+| Chat, citations, sources | ✅ | — |
+| Browse documents and revisions | ✅ read-only | ✅ with controls |
+| Create / corrupt a revision, run ingestion, reprocess | — | ✅ |
+| Ingestion jobs, corpus stats, scheduler | — | ✅ |
+| Retrieval debug | — | ✅ |
+
+The separation is real in the build output, not only in the routing table. The
+console and its API client are lazily loaded, so an employee who only ever chats
+never downloads the code that can rebuild a corpus:
+
+```
+index.js                  428 kB   employee application
+AdminPage.js               11.9 kB ┐
+RetrievalDebugPage.js       6.4 kB │ loaded only at /admin
+AdminLayout.js              2.9 kB │
+AdminDocumentPage.js        2.2 kB │
+admin-client.js             0.8 kB ┘
+```
+
+Nothing admin-shaped reaches the employee bundle — not the console UI, not the
+corpus/ingestion endpoint URLs, not the credential prompt. That makes it
+straightforward to serve `/admin` from a different host, put it behind a
+different identity provider, or simply not deploy it, without touching the
+employee app.
+
+**The credential is checked once, at the console shell.** Visiting `/admin`
+verifies the admin key against a real endpoint and shows a lock screen if it
+fails, instead of each page discovering a 401 on its own and rendering a key box
+in the middle of a half-broken screen. A `Lock` button clears it without
+disturbing the employee session.
+
+The console also looks different — full-width bar, no chat sidebar, its own
+accent — so it is never momentarily unclear which application you are in when
+the button in front of you regenerates a corpus.
+
+> Both halves still share the same API and the same `ADMIN_API_KEY`. This is a
+> UI and bundle separation, not a second trust boundary. The API-side guard is
+> unchanged: every `/api/admin/*` and `/api/debug/*` route is checked server-side
+> regardless of which bundle called it.
+
+---
+
 ## Configuration
 
 Every setting is validated at boot by a Zod schema in `apps/api/src/config/env.ts`. Nothing else in the

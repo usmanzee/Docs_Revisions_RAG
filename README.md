@@ -257,6 +257,7 @@ docker compose up -d postgres
 #   DATABASE_URL=postgres://rag:rag@localhost:5433/docs_rag
 #   TEST_DATABASE_URL=postgres://rag:rag@localhost:5433/docs_rag_test
 
+nvm use          # Node 22+ is required - see the note below
 npm install
 npm run db:migrate
 
@@ -269,6 +270,17 @@ npm run ingestion:run
 # API on :3000, web client on :5173
 npm run dev
 ```
+
+> **Node 22+ is required** — `pdfjs-dist`, `openai` and `@langchain/openai` all
+> need it, and on an older runtime every PDF fails to parse with
+> `Promise.withResolvers is not a function`, which reads like corrupt files but
+> is a missing language feature. An `.nvmrc` pins the version, and `npm run dev`,
+> `npm test` and `npm run build` now refuse to start *anything* on an
+> unsupported runtime — otherwise the API and HCM service exit while Vite keeps
+> going, burying their error messages under a wall of `ECONNREFUSED` proxy
+> errors. Run `nvm use` in each terminal, or set it once with
+> `nvm alias default 24`.
+
 
 Open <http://localhost:5173> and ask:
 

@@ -12,12 +12,14 @@
     "apps/*"
   ],
   "scripts": {
+    "predev": "node scripts/check-node.mjs",
     "dev": "npm-run-all --parallel dev:hcm dev:api dev:web",
     "dev:api": "npm run dev --workspace @docs-rag/api",
     "dev:hcm": "npm run dev --workspace @docs-rag/hcm-mock",
     "dev:web": "npm run dev --workspace @docs-rag/web",
     "benchmark:retrieval": "tsx scripts/benchmark-retrieval.ts",
     "build": "npm run build --workspace @docs-rag/shared && npm run build --workspace @docs-rag/hcm-contract && npm run build --workspace @docs-rag/hcm-mock && npm run build --workspace @docs-rag/api && npm run build --workspace @docs-rag/web",
+    "check:node": "node scripts/check-node.mjs",
     "corpus:corrupt": "tsx scripts/create-corrupt-revision.ts",
     "corpus:generate": "tsx scripts/generate-mock-corpus.ts",
     "corpus:revise": "tsx scripts/create-mock-revision.ts",
@@ -31,6 +33,8 @@
     "eval:retrieval": "tsx scripts/evaluate-retrieval.ts",
     "ingestion:run": "tsx scripts/run-ingestion.ts",
     "lint": "npm run typecheck",
+    "prebuild": "node scripts/check-node.mjs",
+    "pretest": "node scripts/check-node.mjs",
     "test": "npm run test --workspace @docs-rag/api && npm run test --workspace @docs-rag/hcm-mock",
     "test:hcm": "npm run test --workspace @docs-rag/hcm-mock",
     "test:watch": "npm run test:watch --workspace @docs-rag/api",

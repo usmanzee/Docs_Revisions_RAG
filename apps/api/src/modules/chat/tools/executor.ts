@@ -7,9 +7,16 @@
  *
  *   - arguments are validated against the tool's schema before anything runs
  *   - identity is injected, never accepted from the model
- *   - a write whose prerequisite has not succeeded this turn is refused
  *   - a repeated identical write in one turn is refused
  *   - a tool that throws returns an explainable message, never a crash
+ *
+ * Note what is deliberately NOT here: a rule that a booking must be preceded by
+ * a validation. That lived here once, as a per-turn prerequisite, and it was
+ * the wrong place - a booking is agreed across two turns, so the check always
+ * appeared to be missing and every booking opened with a refusal. The guarantee
+ * now sits inside apply_for_leave, which re-validates the exact request it is
+ * about to submit. A property of what it means to book leave belongs to the
+ * tool, not to the orchestration around it.
  */
 
 import { z } from 'zod';
@@ -27,8 +34,6 @@ export class ToolExecutor {
   private readonly logger = childLogger({ component: 'tool-executor' });
   private readonly byName: Map<string, AnyAssistantTool>;
 
-  /** Tools that completed successfully this turn, for prerequisite checks. */
-  private readonly succeeded = new Set<string>();
   /** Signatures of writes already performed this turn, to stop repeats. */
   private readonly performedWrites = new Set<string>();
 
@@ -42,7 +47,6 @@ export class ToolExecutor {
 
   /** Reset per-turn state. The executor is created per turn, so this is belt and braces. */
   reset(): void {
-    this.succeeded.clear();
     this.performedWrites.clear();
   }
 
@@ -79,21 +83,6 @@ export class ToolExecutor {
       });
     }
 
-    // --- prerequisite -------------------------------------------------------
-    if (tool.requiresPriorTool && !this.succeeded.has(tool.requiresPriorTool)) {
-      this.logger.warn(
-        { tool: tool.name, requires: tool.requiresPriorTool },
-        'refused a write whose prerequisite has not run',
-      );
-
-      return finish({
-        content:
-          `${tool.name} was not run: ${tool.requiresPriorTool} must succeed first. ` +
-          `Call ${tool.requiresPriorTool} now with the same details, and if it passes and the user has ` +
-          `already asked you to proceed, call ${tool.name} again in this same turn.`,
-        error: 'prerequisite not satisfied',
-      });
-    }
 
     // --- duplicate write ----------------------------------------------------
     if (tool.mutates) {
@@ -110,10 +99,6 @@ export class ToolExecutor {
     // --- run ----------------------------------------------------------------
     try {
       const result = await tool.execute(parsed.data, context);
-
-      // A refusal is a valid outcome, but it must not satisfy a prerequisite:
-      // a failed validation cannot unlock a booking.
-      if (!result.error && !result.refused) this.succeeded.add(tool.name);
 
       this.logger.info(
         {

@@ -929,9 +929,21 @@ is injected by the executor. A prompt injection hidden in a document cannot talk
 the model into reading somebody else's balance, because the model has no way to
 name them. A unit test asserts no schema mentions one.
 
-**A booking requires a prior successful validation in the same turn.** The
-executor refuses `apply_for_leave` otherwise, and tells the model to validate
-first. A *failed* validation does not unlock it either.
+**A booking re-validates itself immediately before submitting.** `apply_for_leave`
+checks the exact request it is about to create and returns the violations
+instead if a rule blocks it — nothing is created. This is enforced inside the
+tool rather than asked of the model, so it holds regardless of what the model
+chose to call.
+
+> An earlier version gated this from the outside: the executor refused
+> `apply_for_leave` unless `validate_leave_request` had run in the *same turn*.
+> It read well and matched no real conversation — agreement arrives a turn after
+> the question ("can I take Monday off?" … "yes, book it"), so the validation
+> always sat in the previous turn and every booking opened with a refusal the
+> model then recovered from. Three tool cards, one of them scarlet, for one
+> successful action. Checking the actual request at the moment of submission is
+> both tidier and a stronger guarantee: the old gate only knew that *a*
+> validation had happened, not that it was for these dates.
 
 **Identical writes are refused within a turn**, and the idempotency key sent to
 the HCM is derived from the turn, so a retry cannot book the same leave twice.

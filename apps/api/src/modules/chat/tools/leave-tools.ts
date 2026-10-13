@@ -208,13 +208,10 @@ export function createLeaveTools(hcm: HcmClient): AnyAssistantTool[] {
   const applyForLeave = defineTool({
     name: 'apply_for_leave',
     description:
-      'Submit a leave request for approval. This is a real action that creates a record. Only call it ' +
-      'after validate_leave_request succeeded for the same dates AND the user has explicitly confirmed ' +
-      'they want it submitted.',
+      'Submit a leave request for approval. This is a real action that creates a record. Call it once ' +
+      'the user has explicitly confirmed the dates. The request is re-checked against the rules before ' +
+      'anything is created, so a request that breaks a rule is reported back rather than submitted.',
     mutates: true,
-    // Enforced by the executor, not merely requested here: a model cannot book
-    // leave it has not first checked.
-    requiresPriorTool: 'validate_leave_request',
     schema: z.object({
       leaveTypeCode: leaveTypeSchema,
       startDate: dateSchema,
@@ -223,15 +220,47 @@ export function createLeaveTools(hcm: HcmClient): AnyAssistantTool[] {
       endDayPortion: z.enum(['FULL_DAY', 'FIRST_HALF', 'SECOND_HALF']).optional(),
       reason: z.string().max(500).optional().describe('Short reason, if the user gave one.'),
     }).strict(),
+    /**
+     * Validate, then submit.
+     *
+     * The check happens here rather than being demanded of the model. An
+     * earlier version refused the call unless the model had run
+     * validate_leave_request in the same turn, which read well but matched no
+     * real conversation: a booking is agreed over two turns - "can I take
+     * Monday off?", then "yes, book it" - so the validation lived in the
+     * previous turn and every booking began with a refusal the model then had
+     * to recover from. Three tool cards, one of them scarlet, for one action.
+     *
+     * Doing it here is also the stronger guarantee. The old gate only knew
+     * whether a validation had *happened*; it could not tell whether it was for
+     * the same dates, or whether anything had changed since. This re-checks the
+     * exact request about to be submitted, immediately before submitting it.
+     */
     async execute(args, context) {
+      const request = {
+        employeeId: context.employeeId,
+        leaveTypeCode: args.leaveTypeCode,
+        startDate: args.startDate,
+        endDate: args.endDate,
+        startDayPortion: args.startDayPortion ?? 'FULL_DAY',
+        endDayPortion: args.endDayPortion ?? 'FULL_DAY',
+      } as const;
+
       try {
-        const request = await hcm.applyForLeave({
-          employeeId: context.employeeId,
-          leaveTypeCode: args.leaveTypeCode,
-          startDate: args.startDate,
-          endDate: args.endDate,
-          startDayPortion: args.startDayPortion ?? 'FULL_DAY',
-          endDayPortion: args.endDayPortion ?? 'FULL_DAY',
+        const check = await hcm.validateLeaveRequest(request);
+
+        if (!check.valid) {
+          // Nothing was created. Report why, with the detail needed to suggest
+          // a fix, rather than submitting something destined to be rejected.
+          return {
+            content: `Not submitted - this request breaks a rule:\n${formatValidation(check)}`,
+            refused: true,
+            data: check,
+          };
+        }
+
+        const created = await hcm.applyForLeave({
+          ...request,
           reason: args.reason ?? null,
           // Derived from the turn and the dates, so a retry within one turn
           // cannot book the same leave twice.
@@ -239,8 +268,10 @@ export function createLeaveTools(hcm: HcmClient): AnyAssistantTool[] {
         });
 
         return {
-          content: `Submitted. ${formatRequest(request)}. Approver: ${request.approverName ?? 'not assigned'}.`,
-          data: request,
+          content: `Submitted. ${formatRequest(created)}. Approver: ${created.approverName ?? 'not assigned'}.`,
+          // Both halves travel, so the UI can show what was checked as well as
+          // what was booked.
+          data: { request: created, validation: check },
         };
       } catch (error) {
         return toToolError(error);

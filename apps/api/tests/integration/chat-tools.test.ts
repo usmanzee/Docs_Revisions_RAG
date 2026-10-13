@@ -251,7 +251,13 @@ describe('chat with leave tools', () => {
     expect(complete?.data.answerStatus).toBe('ANSWERED');
   });
 
-  it('refuses to book leave that was never validated', async () => {
+  it('books in one call, without a refusal first', async () => {
+    // The regression this guards: the booking used to be gated on a validation
+    // from the same turn. Agreement arrives a turn after the question, so every
+    // booking opened with a refused apply the model then recovered from - three
+    // tool cards, one of them scarlet, for one successful action.
+    hcm.applyCalls.length = 0;
+
     chatModel.setOptions({
       toolCallScript: [
         [
@@ -264,32 +270,49 @@ describe('chat with leave tools', () => {
       ],
     });
 
-    const response = await ask('Book me off 16 to 18 November');
-    const events = parseSse(response.payload);
-    const activity = events.find((entry) => entry.event === 'tool')?.data.activity as Record<string, unknown>;
-
-    expect(activity.error).toBe('prerequisite not satisfied');
-    expect(hcm.applyCalls).toHaveLength(0);
-  });
-
-  it('books leave once validation has run in the same turn', async () => {
-    hcm.applyCalls.length = 0;
-    const args = { leaveTypeCode: 'ANNUAL', startDate: '2026-11-16', endDate: '2026-11-18' };
-
-    chatModel.setOptions({
-      toolCallScript: [
-        [{ id: 'c1', name: 'validate_leave_request', arguments: args }],
-        [{ id: 'c2', name: 'apply_for_leave', arguments: args }],
-      ],
-    });
-
-    const response = await ask('Yes, please book it');
+    const response = await ask('Yes, book it');
     const events = parseSse(response.payload);
     const tools = events
       .filter((entry) => entry.event === 'tool')
-      .map((entry) => (entry.data.activity as { name: string }).name);
+      .map((entry) => entry.data.activity as Record<string, unknown>);
 
-    expect(tools).toEqual(['validate_leave_request', 'apply_for_leave']);
+    expect(tools).toHaveLength(1);
+    expect(tools[0]?.name).toBe('apply_for_leave');
+    expect(tools[0]?.error).toBeNull();
+    expect(tools[0]?.refused).toBe(false);
+    expect(hcm.applyCalls).toHaveLength(1);
+  });
+
+  it('validates when asked, then books on confirmation, one card each turn', async () => {
+    hcm.applyCalls.length = 0;
+    const args = { leaveTypeCode: 'ANNUAL', startDate: '2026-11-16', endDate: '2026-11-18' };
+
+    // Turn one: "can I?" - a check, nothing created.
+    chatModel.setOptions({
+      toolCallScript: [[{ id: 'c1', name: 'validate_leave_request', arguments: args }]],
+    });
+    const asked = await ask('Can I take 16 to 18 November off?');
+    const conversationId = parseSse(asked.payload)[0]?.data.conversationId as string;
+
+    expect(hcm.applyCalls).toHaveLength(0);
+
+    // Turn two: "yes" - one apply, no refusal, even though the validation was
+    // in the previous turn.
+    chatModel.setOptions({
+      toolCallScript: [[{ id: 'c2', name: 'apply_for_leave', arguments: args }]],
+    });
+    const confirmed = await app.inject({
+      method: 'POST',
+      url: '/api/chat',
+      payload: { message: 'Yes, go ahead', conversationId },
+    });
+
+    const tools = parseSse(confirmed.payload)
+      .filter((entry) => entry.event === 'tool')
+      .map((entry) => entry.data.activity as Record<string, unknown>);
+
+    expect(tools).toHaveLength(1);
+    expect(tools[0]?.error).toBeNull();
     expect(hcm.applyCalls).toHaveLength(1);
   });
 

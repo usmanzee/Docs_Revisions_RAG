@@ -38,11 +38,6 @@ export interface AssistantTool<TSchema extends z.ZodTypeAny = z.ZodTypeAny> {
   schema: TSchema;
   /** Writes change state in an external system and are gated by the executor. */
   mutates: boolean;
-  /**
-   * Names a tool that must have succeeded earlier in this turn before this one
-   * may run. Used to force a dry-run validation before a booking.
-   */
-  requiresPriorTool?: string;
   execute(args: z.infer<TSchema>, context: ToolContext): Promise<ToolResult>;
 }
 

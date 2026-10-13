@@ -133,8 +133,8 @@ property cannot be lost in a later refactor.
 
 | Guarantee | Mechanism |
 |---|---|
-| A booking cannot happen without a validation | `requiresPriorTool` on `apply_for_leave`, checked by the executor |
-| A *failed* validation does not unlock a booking | Only non-refused results mark a tool as satisfied |
+| A booking cannot happen without a validation | `apply_for_leave` re-validates the exact request before submitting, inside the tool |
+| A blocked request creates nothing | The validation result is returned as a refusal; `applyForLeave` is never called |
 | The same write cannot run twice in a turn | Argument-signature set, per turn |
 | A retried write cannot double-book | Idempotency key derived from the turn id and the dates |
 | A confused model cannot spin | `CHAT_MAX_TOOL_ITERATIONS`, tools withdrawn on the final pass |

@@ -130,53 +130,40 @@ describe('leave tools', () => {
     });
   });
 
-  describe('write gating', () => {
-    it('refuses to apply before a validation has succeeded', async () => {
+  describe('booking', () => {
+    it('validates the exact request immediately before submitting it', async () => {
       const hcm = stubHcm();
       const executor = new ToolExecutor(createLeaveTools(hcm));
+      const args = { leaveTypeCode: 'ANNUAL', startDate: '2026-11-16', endDate: '2026-11-18' };
 
-      const result = await executor.execute(
-        call('apply_for_leave', {
-          leaveTypeCode: 'ANNUAL',
-          startDate: '2026-11-16',
-          endDate: '2026-11-18',
-        }),
-        context,
-      );
+      const result = await executor.execute(call('apply_for_leave', args), context);
 
-      expect(result.result.error).toBe('prerequisite not satisfied');
-      expect(result.result.content).toMatch(/validate_leave_request/);
-      expect(hcm.applyForLeave).not.toHaveBeenCalled();
+      // No prior validate_leave_request call - the tool does its own.
+      expect(hcm.validateLeaveRequest).toHaveBeenCalledOnce();
+      expect(hcm.applyForLeave).toHaveBeenCalledOnce();
+      expect(result.result.error).toBeUndefined();
+      expect(result.result.content).toMatch(/LR-2026-000042/);
     });
 
-    it('allows apply once validation has succeeded', async () => {
+    it('validates against the dates being submitted, not some earlier request', async () => {
       const hcm = stubHcm();
       const executor = new ToolExecutor(createLeaveTools(hcm));
 
       await executor.execute(
-        call('validate_leave_request', {
-          leaveTypeCode: 'ANNUAL',
-          startDate: '2026-11-16',
-          endDate: '2026-11-18',
-        }),
-        context,
-      );
-
-      const result = await executor.execute(
         call('apply_for_leave', {
           leaveTypeCode: 'ANNUAL',
-          startDate: '2026-11-16',
-          endDate: '2026-11-18',
+          startDate: '2026-12-07',
+          endDate: '2026-12-09',
         }),
         context,
       );
 
-      expect(result.result.error).toBeUndefined();
-      expect(result.result.content).toMatch(/LR-2026-000042/);
-      expect(hcm.applyForLeave).toHaveBeenCalledOnce();
+      expect(hcm.validateLeaveRequest).toHaveBeenCalledWith(
+        expect.objectContaining({ startDate: '2026-12-07', endDate: '2026-12-09' }),
+      );
     });
 
-    it('does not let a FAILED validation unlock a booking', async () => {
+    it('creates nothing when a rule blocks the request', async () => {
       const refused: LeaveValidationResult = {
         ...validation,
         valid: false,
@@ -188,14 +175,28 @@ describe('leave tools', () => {
       const hcm = stubHcm({ validateLeaveRequest: vi.fn(async () => refused) });
       const executor = new ToolExecutor(createLeaveTools(hcm));
 
-      await executor.execute(
-        call('validate_leave_request', {
+      const result = await executor.execute(
+        call('apply_for_leave', {
           leaveTypeCode: 'ANNUAL',
           startDate: '2026-11-16',
           endDate: '2026-11-18',
         }),
         context,
       );
+
+      expect(hcm.applyForLeave).not.toHaveBeenCalled();
+      expect(result.result.refused).toBe(true);
+      // A blocked request is an answer, not a failure: it must not surface as
+      // an error, because the UI paints those scarlet and nothing went wrong.
+      expect(result.result.error).toBeUndefined();
+      expect(result.result.content).toMatch(/INSUFFICIENT_BALANCE/);
+      expect(result.result.content).toMatch(/Not submitted/);
+    });
+
+    it('books with a single tool call, not a validate-then-apply pair', async () => {
+      // The whole point of the change: one card in the UI, one round trip.
+      const hcm = stubHcm();
+      const executor = new ToolExecutor(createLeaveTools(hcm));
 
       const result = await executor.execute(
         call('apply_for_leave', {
@@ -206,8 +207,25 @@ describe('leave tools', () => {
         context,
       );
 
-      expect(result.result.error).toBe('prerequisite not satisfied');
-      expect(hcm.applyForLeave).not.toHaveBeenCalled();
+      expect(result.name).toBe('apply_for_leave');
+      expect(result.result.error).toBeUndefined();
+    });
+
+    it('returns both what was checked and what was booked', async () => {
+      const executor = new ToolExecutor(createLeaveTools(stubHcm()));
+      const result = await executor.execute(
+        call('apply_for_leave', {
+          leaveTypeCode: 'ANNUAL',
+          startDate: '2026-11-16',
+          endDate: '2026-11-18',
+        }),
+        context,
+      );
+
+      expect(result.result.data).toMatchObject({
+        request: { requestNumber: 'LR-2026-000042' },
+        validation: { valid: true },
+      });
     });
 
     it('refuses an identical write twice in one turn', async () => {
@@ -215,7 +233,6 @@ describe('leave tools', () => {
       const executor = new ToolExecutor(createLeaveTools(hcm));
       const args = { leaveTypeCode: 'ANNUAL', startDate: '2026-11-16', endDate: '2026-11-18' };
 
-      await executor.execute(call('validate_leave_request', args), context);
       await executor.execute(call('apply_for_leave', args), context);
       const repeat = await executor.execute(call('apply_for_leave', args), context);
 
@@ -226,10 +243,15 @@ describe('leave tools', () => {
     it('sends an idempotency key derived from the turn', async () => {
       const hcm = stubHcm();
       const executor = new ToolExecutor(createLeaveTools(hcm));
-      const args = { leaveTypeCode: 'ANNUAL', startDate: '2026-11-16', endDate: '2026-11-18' };
 
-      await executor.execute(call('validate_leave_request', args), context);
-      await executor.execute(call('apply_for_leave', args), context);
+      await executor.execute(
+        call('apply_for_leave', {
+          leaveTypeCode: 'ANNUAL',
+          startDate: '2026-11-16',
+          endDate: '2026-11-18',
+        }),
+        context,
+      );
 
       expect(hcm.applyForLeave).toHaveBeenCalledWith(
         expect.objectContaining({ idempotencyKey: 'turn-1-ANNUAL-2026-11-16-2026-11-18' }),
@@ -237,9 +259,7 @@ describe('leave tools', () => {
     });
 
     it('does not gate reads', async () => {
-      const hcm = stubHcm();
-      const executor = new ToolExecutor(createLeaveTools(hcm));
-
+      const executor = new ToolExecutor(createLeaveTools(stubHcm()));
       const result = await executor.execute(call('get_leave_history', {}), context);
       expect(result.result.error).toBeUndefined();
     });
@@ -304,7 +324,6 @@ describe('leave tools', () => {
 
       const executor = new ToolExecutor(createLeaveTools(hcm));
       const args = { leaveTypeCode: 'ANNUAL', startDate: '2026-11-16', endDate: '2026-11-18' };
-      await executor.execute(call('validate_leave_request', args), context);
 
       const result = await executor.execute(call('apply_for_leave', args), context);
 

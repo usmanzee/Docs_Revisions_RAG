@@ -13,6 +13,10 @@ Everything runs against a synthetic corpus that the project generates itself, so
 on anyone's real documents — and because the generator plants known facts, retrieval and answer quality
 can be measured objectively rather than eyeballed.
 
+**▶ [Watch the 1-minute demo](https://youtu.be/p58LwJpliGk)**
+
+![Answer with citations to the exact document, revision and section, with the source passage open](docs/chat-citations.png)
+
 ---
 
 ## Table of contents
@@ -935,6 +939,8 @@ the HCM is derived from the turn, so a retry cannot book the same leave twice.
 Everything the assistant did is streamed to the client as `tool` events and
 rendered inline above the answer — writes expanded by default. When an assistant
 can change a real record, "it said it booked something" is not good enough.
+
+![The assistant validates a leave request, books it after confirmation, and shows each tool call inline](docs/chat-tools.png)
 
 A real exchange, verbatim:
 

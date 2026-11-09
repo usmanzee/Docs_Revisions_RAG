@@ -1267,11 +1267,46 @@
       "approverName": "Daniel Whitfield",
       "createdAt": "2026-10-13T12:00:04.780Z",
       "updatedAt": "2026-10-13T12:00:04.780Z"
+    },
+    {
+      "requestId": "d5130daa-9bc7-49e7-a818-73f5a86f94cf",
+      "requestNumber": "LR-2026-000025",
+      "employeeId": "emp-0001",
+      "employeeNumber": "E10001",
+      "employeeName": "Amara Okafor",
+      "leaveTypeCode": "ANNUAL",
+      "leaveTypeName": "Annual Leave",
+      "startDate": "2026-12-03",
+      "endDate": "2026-12-03",
+      "startDayPortion": "FULL_DAY",
+      "endDayPortion": "FULL_DAY",
+      "totalDays": 1,
+      "days": [
+        {
+          "date": "2026-12-03",
+          "portion": "FULL_DAY",
+          "dayValue": 1
+        }
+      ],
+      "status": "PENDING_APPROVAL",
+      "reason": null,
+      "comments": null,
+      "submittedAt": "2026-10-13T12:18:28.058Z",
+      "decidedAt": null,
+      "decidedBy": null,
+      "decidedByName": null,
+      "withdrawnAt": null,
+      "cancelledAt": null,
+      "approverId": "emp-0002",
+      "approverName": "Daniel Whitfield",
+      "createdAt": "2026-10-13T12:18:28.058Z",
+      "updatedAt": "2026-10-13T12:18:28.058Z"
     }
   ],
-  "sequence": 24,
+  "sequence": 25,
   "idempotency": {
     "78ae54c8-c385-442c-a7ef-cf2619f8f61c-ANNUAL-2026-11-16-2026-11-20": "e1ddb7dc-d0f2-4b66-9313-95d29958bc8e",
-    "c3b52cf1-6030-41a7-bd13-e6f1379a6212-ANNUAL-2026-12-02-2026-12-02": "361ae69a-b6d2-4eff-b947-e4cf9e939de2"
+    "c3b52cf1-6030-41a7-bd13-e6f1379a6212-ANNUAL-2026-12-02-2026-12-02": "361ae69a-b6d2-4eff-b947-e4cf9e939de2",
+    "bace1299-5a94-41a8-a13b-4ffe0fa7e993-ANNUAL-2026-12-03-2026-12-03": "d5130daa-9bc7-49e7-a818-73f5a86f94cf"
   }
 }

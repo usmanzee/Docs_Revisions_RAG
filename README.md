@@ -896,7 +896,6 @@ flowchart TB
     M -->|asks for tools| G{"Executor"}
 
     G -->|schema invalid| REJ["Refused, told why"]
-    G -->|write without validation| REJ
     G -->|duplicate write| REJ
     G -->|allowed| T["HCM API"]
 
@@ -907,7 +906,7 @@ flowchart TB
     subgraph guards["Enforced in code, not by the prompt"]
         direction LR
         I["Identity injected<br/>from the session"]
-        W["Writes require a prior<br/>successful validation"]
+        W["apply_for_leave re-validates<br/>the exact request first"]
         L["Loop bounded by<br/>CHAT_MAX_TOOL_ITERATIONS"]
     end
 ```
@@ -917,7 +916,7 @@ flowchart TB
 | `get_leave_balance` | read | available, taken, scheduled, pending |
 | `get_leave_history` | read | past, pending and upcoming requests |
 | `validate_leave_request` | read | dry run — would this be accepted? |
-| `apply_for_leave` | **write** | requires a successful validation first |
+| `apply_for_leave` | **write** | re-validates the exact request before submitting |
 | `withdraw_leave_request` | **write** | undecided requests only |
 | `cancel_leave_request` | **write** | approved future leave |
 
@@ -1178,7 +1177,7 @@ npm run test --workspace @docs-rag/api -- tests/unit   # fast, no database
 npm run test:integration --workspace @docs-rag/api     # requires TEST_DATABASE_URL
 ```
 
-176 tests across 11 files. Integration tests run against a real PostgreSQL with pgvector — a test suite
+275 tests across 16 files (210 API, 65 HCM). Integration tests run against a real PostgreSQL with pgvector — a test suite
 for a database-centric system that mocks the database proves very little. The suite refuses to run unless
 the database name contains `test`.
 
@@ -1258,14 +1257,16 @@ Stated plainly, because a system that hides its edges is harder to trust.
   user. The UI says so plainly in a banner rather than leaving it implicit. This
   is the single thing that must change before anyone else uses it.
 - **Tool arguments are model-generated.** The executor validates them against a
-  strict schema, gates writes behind a validation, and blocks duplicates within a
-  turn. It cannot stop a model from proposing a *plausible but wrong* date that
-  passes validation, which is why the prompt requires stating resolved dates back
-  to the user before acting, and why every action is shown in the UI.
-- **The confirmation step is prompt-enforced, not code-enforced.** The executor
-  guarantees a validation precedes a booking; it does not know whether the user
-  agreed. A two-phase confirm — where the client must echo a token back before a
-  write executes — would close that, and is the obvious next hardening step.
+  strict schema and blocks duplicates within a turn, and `apply_for_leave`
+  re-validates the exact request before submitting it. None of that can stop a
+  model from proposing a *plausible but wrong* date that passes validation, which
+  is why the prompt requires stating resolved dates back to the user before
+  acting, and why every action is shown in the UI.
+- **The confirmation step is prompt-enforced, not code-enforced.** The code
+  guarantees a booking passes validation before it is submitted; it does not
+  know whether the user agreed. A two-phase confirm — where the client must echo
+  a token back before a write executes — would close that, and is the obvious
+  next hardening step.
 - **Historical-revision retrieval has no ANN index.** The HNSW index is partial on `is_current`, so
   `includeHistorical` queries fall back to an exact scan. Fine at demo scale, a problem at a million
   chunks; the fix is a second index, at the cost of build time and disk.

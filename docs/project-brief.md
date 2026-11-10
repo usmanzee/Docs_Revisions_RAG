@@ -255,7 +255,7 @@ Design decisions that took iterations to get right:
   *outside* — the executor required a `validate_leave_request` earlier in the
   same turn. It read well and matched no real conversation: agreement arrives a
   turn later, so every booking opened with a red "failed" card before retrying.
-  Validation now sits inside the write (commit `8469020`).
+  Validation now sits inside the write (commit `66c8ed3`).
 - **Tools are withdrawn only on the final loop iteration**, not after the first.
   Withdrawing early made validate→apply impossible within one turn.
 - **Conversation history is fed to the model**, not only to the query rewriter.
@@ -548,18 +548,15 @@ debugging anything.
 - **The query rewriter is heuristic-gated** on pronouns, short questions and
   follow-up openers. It will occasionally rewrite something that didn't need it.
 
-### One stale doc to fix
-
-`README.md` §Known limitations still says the executor "gates writes behind a
-validation". Commit `8469020` moved that inside `apply_for_leave` and removed
-the mechanism. The executor's own header comment is correct; the README is not.
-
 ---
 
 ## 15. Git state
 
 ```
-8469020  Validate inside apply_for_leave instead of gating it from outside   (HEAD)
+f9fec0d  project brief and tests fix                                        (HEAD)
+66c8ed3  Validate inside apply_for_leave instead of gating it from outside
+ca0bba2  Add demo video link and screenshots to the README
+b69d4be  Add app screenshots for the README
 bcbe254  Stop npm run dev before it starts anything on an unsupported Node
 7bc6636  Split the web client into an employee app and an operations console
 4ab4bca  Score retrieval against the current revision, not a recorded number
@@ -568,8 +565,7 @@ e23f633  ingition issue fix
 2238732  Enterprise RAG platform with document revision lifecycle
 ```
 
-Working tree: one modified file, `apps/hcm-mock/data/hcm-mock-state.json` — a
-runtime snapshot, not source.
+Working tree: Clean after the Claude Code setup commit.
 
 ---
 

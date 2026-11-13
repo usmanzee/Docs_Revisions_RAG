@@ -1,0 +1,60 @@
+{
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git status *)",
+      "Bash(git diff)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(npm test)",
+      "Bash(npm run test *)",
+      "Bash(npm run test:hcm)",
+      "Bash(npm run test:integration *)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)"
+    ],
+    "ask": [
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(npm run eval:rag *)",
+      "Bash(npm run eval:retrieval *)",
+      "Bash(npm run ingestion:run *)",
+      "Bash(npm run db:reset)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)"
+    ]
+  },
+  "worktree": {
+    "baseRef": "head",
+    "symlinkDirectories": [
+      "node_modules",
+      "apps/api/node_modules",
+      "apps/web/node_modules",
+      "apps/hcm-mock/node_modules"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-migrations.sh",
+            "statusMessage": "Checking migration guard"
+          }
+        ]
+      }
+    ]
+  }
+}

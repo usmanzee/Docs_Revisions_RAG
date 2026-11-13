@@ -104,6 +104,25 @@ npm run eval:retrieval | eval:rag | benchmark:retrieval
 - Fastify logger specialisation breaks type inference in places; cast with `as FastifyBaseLogger`.
 - `ChatPage.tsx` streaming relies on `streamingConversationRef`. A route change on `metadata` once silently discarded every token while all tests stayed green.
 
+## Workflow
+
+The setup lives in `.claude/`. Skills are in `skills/`, agents in `agents/`, and the migration guard hook in `hooks/`.
+
+| Step | Use | Output |
+|---|---|---|
+| Brief and plan | `/plan <brief>` | Options, failure cases and a recommendation, then `docs/plans/<date>-<slug>.md` once decided |
+| Research unknowns | `researcher` agent | Options with sources; read-only |
+| Build in parallel | `/split <plan>` | One `builder` per independent task, each in its own git worktree |
+| Review | `/review` (plus the `reviewer` agent) | Findings by severity with real test results |
+| Record the decision | `/decision` | `docs/decisions/NNNN-<slug>.md` |
+| Ship | `/ship` | Feature branch, commit, then push and PR only after confirmation |
+| Measure retrieval | `/retrieval-check` | Embedding uniformity check, then eval against the brief's baseline |
+
+Things that work differently in parallel worktrees:
+- Builders run unit tests only. Integration tests share one test database and truncate it, so they run once in the main checkout after merging.
+- Worktrees symlink `node_modules`, so changes to `packages/*` aren't visible inside one. Those tasks run first, alone, in the main checkout.
+- The shell may default to Node 20. Prefix commands with `source ~/.nvm/nvm.sh && nvm use >/dev/null &&` when `node -v` < 22.
+
 ## Rules
 - Plan before code for anything bigger than a small fix. Use /plan.
 - Every behaviour change needs a test.

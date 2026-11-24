@@ -31,3 +31,7 @@ data/reports/
 # Mock HCM state snapshot (regenerated from seed)
 data/hcm-mock-state.json
 .claude/settings.local.json
+
+# Claude Code: agent worktrees and the personal recording guide
+.claude/worktrees/
+RECORDING-GUIDE.md

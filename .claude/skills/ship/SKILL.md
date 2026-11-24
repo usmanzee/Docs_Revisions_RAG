@@ -25,7 +25,9 @@ Ship the current changes. Context from me: $ARGUMENTS
    never change git config or credentials.
 5. **Show me** the commit (`git show --stat HEAD`) and stop. Ask before pushing.
 6. **On my OK, push** with `git push -u origin <branch>`. Never force-push.
-7. **PR.** If `gh` is installed, run `gh pr create`. If not, print the compare
+7. **PR.** If the `github` MCP server is connected, open the PR with its
+   create-pull-request tool (it acts as my account, through my token). Else, if
+   `gh` is installed, run `gh pr create`. If neither, print the compare
    URL (`https://github.com/<owner>/<repo>/compare/<branch>?expand=1`, taken
    from `git remote get-url origin`) and the PR body for me to paste:
    - **What and why** - two or three sentences.

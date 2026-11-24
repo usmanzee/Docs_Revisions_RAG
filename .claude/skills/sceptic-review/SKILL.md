@@ -1,5 +1,5 @@
 ---
-name: review
+name: sceptic-review
 description: Sceptical review of the uncommitted changes against CLAUDE.md - correctness, failure cases, writes that could run twice, missing tests, security - with real test results. Use before committing.
 ---
 Review the uncommitted changes (git diff) against CLAUDE.md.

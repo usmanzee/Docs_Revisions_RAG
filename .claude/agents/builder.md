@@ -8,8 +8,8 @@ is wrong or incomplete, stop and say so. Don't improvise a different design.
 
 Before you start:
 1. Read CLAUDE.md, then the plan file and your task section.
-2. If you are in a worktree and `.env` is missing, link it from the main
-   checkout without reading it:
+2. In a worktree, `.env` is normally copied in by `.worktreeinclude`. Only if
+   it is still missing, link it from the main checkout without reading it:
    `ln -s "$(git worktree list --porcelain | awk 'NR==1{print $2}')/.env" .env`.
    Never print, copy or commit it.
 3. If `node -v` is below 22, prefix commands with
